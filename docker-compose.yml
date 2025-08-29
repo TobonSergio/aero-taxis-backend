@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_taxis
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db-taxis-aeropuerto
+      MYSQL_USER: taxis_user
+      MYSQL_PASSWORD: taxis_pass
+    ports:
+      - "3307:3306" # puerto local 3307 -> contenedor 3306
+    volumes:
+      - db_data:/var/lib/mysql
+
+  backend:
+    build: .
+    container_name: backend_taxis
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/db-taxis-aeropuerto
+      SPRING_DATASOURCE_USERNAME: taxis_user
+      SPRING_DATASOURCE_PASSWORD: taxis_pass
+
+volumes:
+  db_data:
