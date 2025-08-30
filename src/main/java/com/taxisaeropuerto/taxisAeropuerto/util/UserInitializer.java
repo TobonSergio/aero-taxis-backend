@@ -1,6 +1,8 @@
 package com.taxisaeropuerto.taxisAeropuerto.util;
 
+import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
+import com.taxisaeropuerto.taxisAeropuerto.repository.RolRepository;
 import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,10 +13,14 @@ public class UserInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RolRepository rolRepository;
 
-    public UserInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserInitializer(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           RolRepository rolRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.rolRepository = rolRepository;
     }
 
     @Override
@@ -25,8 +31,12 @@ public class UserInitializer implements CommandLineRunner {
         if (userRepository.findByUsername(username).isEmpty()) {
             User user = new User();
             user.setUsername(username);
-            user.setPassword(passwordEncoder.encode(rawPassword)); // Aquí se encripta
-            user.setRole("ROLE_USER");
+            user.setPassword(passwordEncoder.encode(rawPassword));
+
+            Rol rol = rolRepository.findByNombre("admin")
+                    .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+            user.setRol(rol);
+
             userRepository.save(user);
             System.out.println("Usuario creado: " + username);
         } else {
@@ -34,3 +44,4 @@ public class UserInitializer implements CommandLineRunner {
         }
     }
 }
+

@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "usuarios")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,18 +20,22 @@ public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario", unique = true)
     private Long id;
 
     @Column(name = "usuario", unique = true)
     private String username;
-    @Column(name = "contraseña" )
+
+    @Column(name = "contraseña")
     private String password;
 
-    private String role; // "ROLE_USER" o "ROLE_ADMIN"
+    @ManyToOne
+    @JoinColumn(name = "fk_id_rol", referencedColumnName = "id_rol")
+    private Rol rol;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
+        return List.of(new SimpleGrantedAuthority(rol.getNombre()));
     }
 
     @Override public String getPassword() { return password; }
