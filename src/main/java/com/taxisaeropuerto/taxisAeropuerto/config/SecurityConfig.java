@@ -60,7 +60,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000", // frontend local
-                "https://aero-taxis-1f83osv0l-tobonsergios-projects.vercel.app" // frontend en Vercel
+                "https://aero-taxis.vercel.app" // frontend en Vercel
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
