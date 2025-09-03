@@ -4,6 +4,7 @@ import com.taxisaeropuerto.taxisAeropuerto.entity.User;
 import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
 import com.taxisaeropuerto.taxisAeropuerto.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,8 @@ public class OAuth2Controller {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    @Value("${custom.frontredirecturl}")
+    private String frontendRedirectUrl;
 
     @GetMapping("/oauth2-success")
     public RedirectView handleOAuth2Success(@AuthenticationPrincipal OAuth2User oauth2User) {
@@ -40,8 +43,8 @@ public class OAuth2Controller {
         String jwtToken = jwtService.generateToken(user);
 
         // 3. Redirección al frontend con el token en la URL
-        String frontendUrl = "http://localhost:3000/oauth-callback?token=" + jwtToken;
+        String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken;
 
-        return new RedirectView(frontendUrl);
+        return new RedirectView(redirectUrl);
     }
 }
