@@ -23,6 +23,24 @@ public class User implements UserDetails {
     @Column(name = "id_usuario", unique = true)
     private Long id;
 
+    @Column(name = "enabled")
+    private Boolean enabled = false;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "nombre")
+    private String name;
+
+    @Column(name = "apellido")
+    private String lastName;
+
+    @Column(name = "correo", unique = true)
+    private String email;
+
+    @Column(name = "telefono")
+    private String number;
+
     @Column(name = "usuario", unique = true)
     private String username;
 
@@ -43,5 +61,5 @@ public class User implements UserDetails {
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return true; }
+    @Override public boolean isEnabled() { return this.enabled; }
 }
