@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -18,6 +19,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    @Value("${custom.frontredirecturl}")
+    private String frontendRedirectUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -39,8 +42,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         // Genera el token JWT
         String jwtToken = jwtService.generateToken(user);
 
-        // Redirige al frontend con el token en la URL
-        String redirectUrl = "http://localhost:3000/oauth-callback?token=" + jwtToken;
+        // 3. Redirección al frontend con el token en la URL
+        String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken;
         response.sendRedirect(redirectUrl);
     }
 }
