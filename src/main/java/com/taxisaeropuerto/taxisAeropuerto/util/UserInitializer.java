@@ -1,4 +1,4 @@
-package com.taxisaeropuerto.taxisAeropuerto.util;
+/*package com.taxisaeropuerto.taxisAeropuerto.util;
 
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
@@ -43,5 +43,5 @@ public class UserInitializer implements CommandLineRunner {
             System.out.println("El usuario ya existe: " + username);
         }
     }
-}
+}*/
 
