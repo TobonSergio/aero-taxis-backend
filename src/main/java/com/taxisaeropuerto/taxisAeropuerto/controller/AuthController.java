@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam; // <-- Nueva importación
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -55,14 +57,25 @@ public class AuthController {
         }
     }
 
-    // Nuevo endpoint para la verificación del usuario
     @GetMapping("/verify")
-    public ResponseEntity<String> verifyUser(@RequestParam("token") String token) {
+    public ResponseEntity<?> verifyUser(@RequestParam("token") String token) {
         try {
             userService.verifyUser(token);
-            return ResponseEntity.ok("¡Tu cuenta ha sido verificada con éxito! Ya puedes iniciar sesión.");
+
+            return ResponseEntity.ok().body(
+                    Map.of(
+                            "status", "success",
+                            "message", "¡Tu cuenta ha sido verificada con éxito! Ya puedes iniciar sesión."
+                    )
+            );
+
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            return ResponseEntity.badRequest().body(
+                    Map.of(
+                            "status", "error",
+                            "message", ex.getMessage()
+                    )
+            );
         }
     }
 }
