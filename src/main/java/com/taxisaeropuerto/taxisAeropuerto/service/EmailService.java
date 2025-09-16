@@ -19,16 +19,25 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(String toEmail, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
 
-        message.setFrom("sestebantmontoya@gmail.com"); // remitente validado en SendGrid
-        message.setTo(toEmail);
-        message.setSubject("Verificación de cuenta para Taxis Aeropuerto");
+            message.setFrom("sestebantmontoya@gmail.com"); // ⚠️ remitente debe estar validado en SendGrid
+            message.setTo(toEmail);
+            message.setSubject("Verificación de cuenta para Taxis Aeropuerto");
 
-        // 🔥 URL dinámica según tu properties
-        message.setText("Hola!\n\nPara verificar tu cuenta, por favor, haz clic en el siguiente enlace:\n"
-                + frontendUrl + "/verify?token=" + token);
+            message.setText("Hola!\n\nPara verificar tu cuenta, haz clic aquí:\n"
+                    + frontendUrl + "/verify?token=" + token);
 
-        mailSender.send(message);
+            mailSender.send(message);
+
+            // ✅ Log de éxito
+            System.out.println("✅ Correo de verificación enviado a: " + toEmail);
+
+        } catch (Exception e) {
+            // ❌ Log de error
+            System.err.println("❌ Error enviando correo a " + toEmail + ": " + e.getMessage());
+            e.printStackTrace(); // imprime el stack completo
+        }
     }
 }

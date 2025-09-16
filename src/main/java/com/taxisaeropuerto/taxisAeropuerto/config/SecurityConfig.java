@@ -4,12 +4,12 @@ import com.taxisaeropuerto.taxisAeropuerto.security.CustomUserDetailsService;
 import com.taxisaeropuerto.taxisAeropuerto.security.JwtAuthenticationFilter;
 import com.taxisaeropuerto.taxisAeropuerto.security.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -25,6 +25,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // 🔑 habilita @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -40,19 +41,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // ✅ CORRECTED: Use the corsConfigurationSource bean
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ Allow access to JWT and OAuth authentication routes
-                        .requestMatchers("/api/auth/**", "/test-password", "/generate-hash", "/oauth2/**", "/oauth2-success").permitAll()
+                        // 🔓 Endpoints públicos
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/register/email",
+                                "/api/auth/verify",
+                                "/test-password",
+                                "/generate-hash",
+                                "/oauth2/**",
+                                "/oauth2-success"
+                        ).permitAll()
+
+                        // 🔒 Endpoints solo para ADMIN
+                        .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN")
+
+                        // 🔐 Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                // ✅ Enable OAuth 2.0 login and use your handler
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2LoginSuccessHandler)
                 );
@@ -70,9 +83,10 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
+                "http://localhost:5174",
                 "http://localhost:5173",
                 "https://aero-taxis.vercel.app",
-                "https://frontend-aero-taxis.vercel.app" // ✅ Nuevo dominio agregado
+                "https://frontend-aero-taxis.vercel.app"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

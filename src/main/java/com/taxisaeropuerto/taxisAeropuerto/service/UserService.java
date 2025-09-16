@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateUserRequest;
 import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterByEmailRequest;
 import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterRequest;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
@@ -111,4 +112,47 @@ public class UserService {
 
         return savedUser;
     }
+
+    public User createUserByAdmin(AdminCreateUserRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent() ||
+                userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("El usuario o correo ya existen.");
+        }
+
+        User newUser = new User();
+        newUser.setName(request.getName());
+        newUser.setLastName(request.getLastName());
+        newUser.setEmail(request.getEmail());
+        newUser.setNumber(request.getNumber());
+        newUser.setUsername(request.getUsername());
+        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        Rol rol = rolRepository.findById(request.getRolId())
+                .orElseThrow(() -> new RuntimeException("El rol con ID " + request.getRolId() + " no existe."));
+        newUser.setRol(rol);
+
+        // ✅ Igual que en registerUser
+        newUser.setEnabled(false);
+        newUser.setVerificationToken(UUID.randomUUID().toString());
+
+        User savedUser = userRepository.save(newUser);
+
+        // ✅ Enviar correo
+        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
+
+        return savedUser;
+    }
+
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
+    public User getUserByUsernameOrEmail(String usernameOrEmail) {
+        return userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByEmail(usernameOrEmail))
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
+
 }
