@@ -10,7 +10,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +31,17 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.getRol() != null ? user.getRol().getNombre() : "USER"
         );
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername() != null ? user.getUsername() : user.getEmail(),
-                user.getPassword() != null ? user.getPassword() : "",
-                Collections.singletonList(authority)
-        );
+
+        if (user.getPassword() == null) {
+             user.setPassword("");
+        }
+
+        String username = user.getEmail();
+        String password = user.getPassword();
+
+        org.springframework.security.core.userdetails.User userSpringSecurity = new org.springframework.security.core.userdetails.User(username, password, Collections.singleton(authority));
+
+        return userSpringSecurity;
+
     }
 }

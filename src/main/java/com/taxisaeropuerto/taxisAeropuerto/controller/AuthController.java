@@ -96,28 +96,28 @@ public class AuthController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-        @GetMapping("/me")
-        public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-            try {
-                String usernameOrEmail = authentication.getName();
-                User user = userService.getUserByUsernameOrEmail(usernameOrEmail); // nuevo método
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        try {
+            String usernameOrEmail = authentication.getName();
+            User user = userService.getUserByUsernameOrEmail(usernameOrEmail); // nuevo método
 
-                return ResponseEntity.ok(Map.of(
-                        "id", user.getId(),
-                        "username", user.getUsername() != null ? user.getUsername() : "",
-                        "name", user.getName() != null ? user.getName() : "",
-                        "lastName", user.getLastName() != null ? user.getLastName() : "",
-                        "email", user.getEmail(),
-                        "number", user.getNumber() != null ? user.getNumber() : "",
-                        "rolId", user.getRol() != null ? user.getRol().getId() : 0,
-                        "rolName", user.getRol() != null ? user.getRol().getNombre() : "USER"
-                ));
-            } catch (RuntimeException e) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        Map.of("error", e.getMessage())
-                );
-            }
+            return ResponseEntity.ok(Map.of(
+                    "id", user.getId(),
+                    "username", user.getUsername() != null ? user.getUsername() : "",
+                    "name", user.getName() != null ? user.getName() : "",
+                    "lastName", user.getLastName() != null ? user.getLastName() : "",
+                    "email", user.getEmail(),
+                    "number", user.getNumber() != null ? user.getNumber() : "",
+                    "rolid", user.getRol() != null ? user.getRol().getId() : 0,
+                    "rolName", user.getRol() != null ? user.getRol().getNombre() : "USER"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Map.of("error", e.getMessage())
+            );
         }
+    }
 
 
 }
