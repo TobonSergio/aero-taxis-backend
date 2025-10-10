@@ -10,6 +10,7 @@ import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -153,6 +154,7 @@ public class UserService {
                 .or(() -> userRepository.findByEmail(usernameOrEmail))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
-
-
+    public void save(User user) {
+        userRepository.save(user);
+    }
 }

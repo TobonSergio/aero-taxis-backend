@@ -9,15 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication; // ✅ Import necesario
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -96,11 +93,13 @@ public class AuthController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    // Obtener usuario autenticado
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         try {
             String usernameOrEmail = authentication.getName();
-            User user = userService.getUserByUsernameOrEmail(usernameOrEmail); // nuevo método
+            User user = userService.getUserByUsernameOrEmail(usernameOrEmail);
 
             return ResponseEntity.ok(Map.of(
                     "id", user.getId(),
@@ -119,5 +118,36 @@ public class AuthController {
         }
     }
 
+    // ✅ NUEVO: Actualizar usuario autenticado
+    @PutMapping("/me")
+    public ResponseEntity<?> updateCurrentUser(@RequestBody UserUpdateDTO dto, Authentication authentication) {
+        try {
+            String usernameOrEmail = authentication.getName();
+            User user = userService.getUserByUsernameOrEmail(usernameOrEmail);
+
+            user.setName(dto.getName());
+            user.setLastName(dto.getLastName());
+            user.setUsername(dto.getUsername());
+            user.setNumber(dto.getNumber());
+
+            userService.save(user); // Guarda los cambios
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Perfil actualizado correctamente",
+                    "user", Map.of(
+                            "id", user.getId(),
+                            "username", user.getUsername(),
+                            "name", user.getName(),
+                            "lastName", user.getLastName(),
+                            "email", user.getEmail(),
+                            "number", user.getNumber()
+                    )
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    Map.of("error", e.getMessage())
+            );
+        }
+    }
 
 }
