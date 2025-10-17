@@ -1,6 +1,7 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateUserRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.AdminUpdateUserRequest;
 import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterByEmailRequest;
 import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterRequest;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
@@ -142,6 +143,36 @@ public class UserService {
         emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
 
         return savedUser;
+    }
+
+    public User updateUserByAdmin(Long id, AdminUpdateUserRequest request) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
+
+        existingUser.setName(request.getName());
+        existingUser.setLastName(request.getLastName());
+        existingUser.setEmail(request.getEmail());
+        existingUser.setNumber(request.getNumber());
+
+        // Si se quiere cambiar el rol
+        if (request.getRolId() != null) {
+            Rol rol = rolRepository.findById(request.getRolId())
+                    .orElseThrow(() -> new RuntimeException("El rol con ID " + request.getRolId() + " no existe."));
+            existingUser.setRol(rol);
+        }
+
+        return userRepository.save(existingUser);
+    }
+
+    public void deleteUserByAdmin(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("El usuario no existe.");
+        }
+        userRepository.deleteById(id);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
     public User getUserByUsername(String username) {

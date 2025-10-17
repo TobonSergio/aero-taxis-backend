@@ -57,7 +57,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // 🔒 Endpoints solo para ADMIN
-                        .requestMatchers("/api/auth/admin/**").hasAuthority("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
                         // 🔐 Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
