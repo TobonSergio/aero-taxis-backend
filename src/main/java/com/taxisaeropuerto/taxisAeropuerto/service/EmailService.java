@@ -10,7 +10,6 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    // ✅ ahora usamos tu propiedad existente en application.properties
     @Value("${custom.frontemailredirecturl}")
     private String frontendUrl;
 
@@ -18,26 +17,34 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    public void sendVerificationEmail(String toEmail, String token) {
+    // Método general para enviar correo de verificación
+    public void sendVerificationEmail(String toEmail, String token, boolean isCliente) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-
-            message.setFrom("sestebantmontoya@gmail.com"); // ⚠️ remitente debe estar validado en SendGrid
+            message.setFrom("sestebantmontoya@gmail.com");
             message.setTo(toEmail);
             message.setSubject("Verificación de cuenta para Taxis Aeropuerto");
 
-            message.setText("Hola!\n\nPara verificar tu cuenta, haz clic aquí:\n"
-                    + frontendUrl + "/verify?token=" + token);
+            // 👇 diferencia clave: agregamos el parámetro type
+            String verificationUrl = frontendUrl + "/verify?token=" + token + "&type=" + (isCliente ? "cliente" : "usuario");
+
+            message.setText("Hola!\n\nPara verificar tu cuenta, haz clic aquí:\n" + verificationUrl);
 
             mailSender.send(message);
-
-            // ✅ Log de éxito
             System.out.println("✅ Correo de verificación enviado a: " + toEmail);
 
         } catch (Exception e) {
-            // ❌ Log de error
             System.err.println("❌ Error enviando correo a " + toEmail + ": " + e.getMessage());
-            e.printStackTrace(); // imprime el stack completo
+            e.printStackTrace();
         }
+    }
+
+    // Métodos específicos según el tipo de registro
+    public void sendClienteVerificationEmail(String toEmail, String token) {
+        sendVerificationEmail(toEmail, token, true);
+    }
+
+    public void sendUsuarioVerificationEmail(String toEmail, String token) {
+        sendVerificationEmail(toEmail, token, false);
     }
 }

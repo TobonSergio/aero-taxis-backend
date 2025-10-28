@@ -2,13 +2,19 @@ package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.AuthResponse;
 import com.taxisaeropuerto.taxisAeropuerto.dto.LoginRequest;
-import com.taxisaeropuerto.taxisAeropuerto.entity.User; // Importa la clase User
-import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository; // Importa el repositorio
+import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
+import com.taxisaeropuerto.taxisAeropuerto.entity.User;
+import com.taxisaeropuerto.taxisAeropuerto.repository.RolRepository;
+import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
+import com.taxisaeropuerto.taxisAeropuerto.service.EmailService;
 import com.taxisaeropuerto.taxisAeropuerto.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -16,26 +22,28 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserRepository userRepository; // <-- Se agrega el repositorio
+    private final UserRepository userRepository;
 
     public AuthResponse login(LoginRequest request) {
-        System.out.println("Autenticando usuario: " + request.getUsername());
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            );
-            System.out.println("Autenticación exitosa");
-        } catch (Exception e) {
-            System.out.println("Error de autenticación: " + e.getMessage());
-            throw e;
-        }
+        String usernameOrEmail = request.getUsername(); // puede ser username o correo
+        String password = request.getPassword();
 
-        // Después de una autenticación exitosa, busca el usuario en el repositorio
-        User user = userRepository.findByUsername(request.getUsername())
+        // Buscar usuario por username O correo
+        User user = userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByCorreo(usernameOrEmail))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        if (!user.getEnabled()) {
+            throw new RuntimeException("Cuenta no verificada. Revisa tu correo para activar la cuenta.");
+        }
+
+        // Usar el username real del usuario para autenticar
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getCorreo(), password)
+        );
+
+        // Generar token JWTs
         String token = jwtService.generateToken(user);
-        System.out.println("Token generado: " + token);
         return new AuthResponse(token);
     }
 

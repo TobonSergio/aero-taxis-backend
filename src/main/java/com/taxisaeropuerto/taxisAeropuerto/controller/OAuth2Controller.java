@@ -17,6 +17,7 @@ public class OAuth2Controller {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+
     @Value("${custom.frontredirecturl}")
     private String frontendRedirectUrl;
 
@@ -25,26 +26,22 @@ public class OAuth2Controller {
         String email = oauth2User.getAttribute("email");
         String name = oauth2User.getAttribute("name");
 
-        // 1. Lógica de negocio: Busca o crea el usuario
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setName(name);
-                    // Los campos de usuario y contraseña son nulos para OAuth
-                    newUser.setUsername(null);
-                    newUser.setPassword(null);
-                    // Asigna un rol por defecto
-                    return userRepository.save(newUser);
-                });
+        // Buscar si ya existe el usuario
+        User user = userRepository.findByCorreo(email).orElse(null);
 
-        // 2. Generación del JWT
-        // ✅ Corregido: Pasamos el objeto 'user' completo
+        // Si no existe, lo creamos
+        if (user == null) {
+            user = new User();
+            user.setUsername(email); // puedes usar el email como username
+            user.setEnabled(true);
+            userRepository.save(user);
+        }
+
+        // Generar el token JWT
         String jwtToken = jwtService.generateToken(user);
 
-        // 3. Redirección al frontend con el token en la URL
-        String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken;
-
+        // Redirigir al frontend con el token
+        String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken + "&type=usuario";
         return new RedirectView(redirectUrl);
     }
 }

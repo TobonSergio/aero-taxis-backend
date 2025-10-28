@@ -50,15 +50,19 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/register/email",
                                 "/api/auth/verify",
+                                "/api/public/register-first-admin",
                                 "/test-password",
                                 "/generate-hash",
                                 "/oauth2/**",
                                 "/oauth2-success"
+
                         ).permitAll()
 
+                        // 🔒 Endpoints accesibles tanto por ADMIN como STAFF
+                        .requestMatchers("/api/gestion/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/staff/**").hasAnyRole("ADMIN","STAFF")
                         // 🔒 Endpoints solo para ADMIN
-                        .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 🔐 Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )

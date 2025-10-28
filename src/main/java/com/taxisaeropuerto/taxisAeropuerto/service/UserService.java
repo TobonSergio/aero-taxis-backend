@@ -1,191 +1,90 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
-import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateUserRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.AdminUpdateUserRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterByEmailRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.RegisterRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ClienteUpdateDTO;
+import com.taxisaeropuerto.taxisAeropuerto.entity.Cliente;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
+import com.taxisaeropuerto.taxisAeropuerto.repository.ClienteRepository;
 import com.taxisaeropuerto.taxisAeropuerto.repository.RolRepository;
 import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClienteRepository clienteRepository;
     private final EmailService emailService;
 
-    public UserService(UserRepository userRepository, RolRepository rolRepository, PasswordEncoder passwordEncoder, EmailService emailService) {
-        this.userRepository = userRepository;
-        this.rolRepository = rolRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-    }
-
-    public User registerUser(RegisterRequest request) {
-        // Validación de duplicados
-        if (userRepository.findByUsername(request.getUsername()).isPresent() ||
-                userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("El usuario o correo ya existen.");
+    public void registerUser(String nombre, String apellido, String telefono, String correo, String password) {
+        if (userRepository.findByCorreo(correo).isPresent()) {
+            throw new RuntimeException("El usuario ya existe.");
         }
 
-        // Creación del nuevo usuario
-        User newUser = new User();
-        newUser.setName(request.getName());
-        newUser.setLastName(request.getLastName());
-        newUser.setEmail(request.getEmail());
-        newUser.setNumber(request.getNumber());
-        newUser.setUsername(request.getUsername());
+        Rol rolCliente = rolRepository.findById(3L)
+                .orElseThrow(() -> new RuntimeException("Rol CLIENTE no encontrado"));
 
-        // Encripta la contraseña antes de guardarla
-        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        // Asigna el rol por defecto buscándolo por su ID
-        Rol userRol = rolRepository.findById(3L)
-                .orElseThrow(() -> new NoSuchElementException("El rol con ID '3' no se encontró."));
-        newUser.setRol(userRol);
-
-        // --- Nuevos pasos para la verificación de email ---
-        newUser.setEnabled(false); // La cuenta está inactiva por defecto
-        newUser.setVerificationToken(UUID.randomUUID().toString()); // Se genera el token único
-
-        // Guarda el usuario en la base de datos
-        User savedUser = userRepository.save(newUser);
-
-        // Envía el correo de verificación
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
-
-        return savedUser;
-    }
-
-    // --- Nuevo método para verificar el usuario ---
-    public void verifyUser(String token) {
-        // 1. Busca el usuario por el token
-        User user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Token de verificación inválido."));
-
-        // 2. Activa la cuenta
-        user.setEnabled(true);
-
-        // 3. Limpia el token para que no pueda ser usado de nuevo
-        user.setVerificationToken(null);
-
-        // 4. Guarda los cambios en la base de datos
+        // 1️⃣ Crear usuario
+        User user = new User();
+        user.setUsername(correo);
+        user.setCorreo(correo);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEnabled(false);
+        user.setVerificationToken(UUID.randomUUID().toString());
+        user.setRol(rolCliente);
         userRepository.save(user);
+
+        // 2️⃣ Crear cliente asociado
+        Cliente cliente = new Cliente();
+        cliente.setNombre(nombre);
+        cliente.setApellido(apellido);
+        cliente.setTelefono(telefono);
+        cliente.setUsuario(user);
+        clienteRepository.save(cliente);
+
+        // 3️⃣ Enviar correo de verificación
+        emailService.sendClienteVerificationEmail(correo, user.getVerificationToken());
     }
 
-    public User registerUserByEmail(RegisterByEmailRequest request) {
-        // 1. Validar que el correo no exista
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("El correo ya está registrado.");
-        }
-
-        // 2. Crear el nuevo usuario
-        User newUser = new User();
-        newUser.setEmail(request.getEmail());
-        newUser.setUsername(request.getEmail()); // Se usa el correo como nombre de usuario
-        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        // Asigna los campos opcionales como nulos para la base de datos
-        newUser.setName(null);
-        newUser.setLastName(null);
-        newUser.setNumber(null);
-
-        // 3. Asignar el rol por defecto
-        Rol userRol = rolRepository.findById(3L)
-                .orElseThrow(() -> new NoSuchElementException("El rol con ID '3' no se encontró."));
-        newUser.setRol(userRol);
-
-        // 4. Configurar para verificación
-        newUser.setEnabled(false);
-        newUser.setVerificationToken(UUID.randomUUID().toString());
-
-        // 5. Guardar y enviar correo
-        User savedUser = userRepository.save(newUser);
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
-
-        return savedUser;
+    // 🔹 Obtener usuario por correo
+    public User getUserByCorreo(String correo) {
+        return userRepository.findByCorreo(correo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con correo: " + correo));
     }
 
-    public User createUserByAdmin(AdminCreateUserRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent() ||
-                userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("El usuario o correo ya existen.");
-        }
-
-        User newUser = new User();
-        newUser.setName(request.getName());
-        newUser.setLastName(request.getLastName());
-        newUser.setEmail(request.getEmail());
-        newUser.setNumber(request.getNumber());
-        newUser.setUsername(request.getUsername());
-        newUser.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        Rol rol = rolRepository.findById(request.getRolId())
-                .orElseThrow(() -> new RuntimeException("El rol con ID " + request.getRolId() + " no existe."));
-        newUser.setRol(rol);
-
-        // ✅ Igual que en registerUser
-        newUser.setEnabled(false);
-        newUser.setVerificationToken(UUID.randomUUID().toString());
-
-        User savedUser = userRepository.save(newUser);
-
-        // ✅ Enviar correo
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
-
-        return savedUser;
-    }
-
-    public User updateUserByAdmin(Long id, AdminUpdateUserRequest request) {
-        User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
-
-        existingUser.setName(request.getName());
-        existingUser.setLastName(request.getLastName());
-        existingUser.setEmail(request.getEmail());
-        existingUser.setNumber(request.getNumber());
-
-        // Si se quiere cambiar el rol
-        if (request.getRolId() != null) {
-            Rol rol = rolRepository.findById(request.getRolId())
-                    .orElseThrow(() -> new RuntimeException("El rol con ID " + request.getRolId() + " no existe."));
-            existingUser.setRol(rol);
-        }
-
-        return userRepository.save(existingUser);
-    }
-
-    public void deleteUserByAdmin(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("El usuario no existe.");
-        }
-        userRepository.deleteById(id);
-    }
-
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
+    // 🔹 Obtener usuario por username
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
     }
 
-    public User getUserByUsernameOrEmail(String usernameOrEmail) {
-        return userRepository.findByUsername(usernameOrEmail)
-                .or(() -> userRepository.findByEmail(usernameOrEmail))
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    // 🔹 Buscar usuario por username o correo
+    public Optional<User> findByUsernameOrCorreo(String usernameOrCorreo) {
+        return userRepository.findByUsernameOrCorreo(usernameOrCorreo, usernameOrCorreo);
     }
-    public void save(User user) {
+
+    // 🔹 Verificar usuario por token de verificación
+    public void verifyUser(String token) {
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new RuntimeException("Token de verificación inválido."));
+        user.setEnabled(true);
+        user.setVerificationToken(null);
         userRepository.save(user);
+    }
+
+    // 🔹 Guardar usuario
+    public User saveUser(User user) {
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        return userRepository.save(user);
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -22,7 +24,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
-    private final RolRepository rolRepository; // ✅ Repositorio de roles
+    private final RolRepository rolRepository;
 
     @Value("${custom.frontredirecturl}")
     private String frontendRedirectUrl;
@@ -35,36 +37,34 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String email = oauth2User.getAttribute("email");
         String name = oauth2User.getAttribute("name");
 
-        // Busca o crea el usuario
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setName(name);
-                    newUser.setUsername(null);
-                    newUser.setPassword(null);
-                    newUser.setEnabled(true); // Puedes habilitarlo automáticamente
+        // 🔹 Buscar usuario existente por correo
+        Optional<User> optionalUser = userRepository.findByCorreo(email);
+        User user;
 
-                    // ✅ Asignar rol por defecto "CLIENTE"
-                    Rol rolCliente = rolRepository.findByNombre("CLIENTE")
-                            .orElseThrow(() -> new RuntimeException("El rol CLIENTE no existe en la base de datos"));
-                    newUser.setRol(rolCliente);
+        if (optionalUser.isPresent()) {
+            // ✅ Ya existe → lo usamos directamente
+            user = optionalUser.get();
 
-                    return userRepository.save(newUser);
-                });
+        } else {
+            // 🆕 No existe → lo creamos con rol CLIENTE (rolId = 3)
+            Rol rolCliente = rolRepository.findById(3L)
+                    .orElseThrow(() -> new RuntimeException("Rol CLIENTE (ID 3) no encontrado"));
 
-        // ✅ Si ya existe pero no tiene rol, se lo asignamos también
-        if (user.getRol() == null) {
-            Rol rolCliente = rolRepository.findByNombre("CLIENTE")
-                    .orElseThrow(() -> new RuntimeException("El rol CLIENTE no existe en la base de datos"));
+            user = new User();
+            user.setUsername(email);
+            user.setCorreo(email);
+            user.setPassword(null); // no usa contraseña (Google)
+            user.setEnabled(true);
+            user.setVerificationToken(UUID.randomUUID().toString());
             user.setRol(rolCliente);
+
             userRepository.save(user);
         }
 
-        // Generar token JWT
+        // 🔹 Generar token JWT
         String jwtToken = jwtService.generateToken(user);
 
-        // Redirección al frontend con el token
+        // 🔹 Redirigir al frontend con el token
         String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken;
         response.sendRedirect(redirectUrl);
     }

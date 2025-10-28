@@ -1,6 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.security;
 
-import com.taxisaeropuerto.taxisAeropuerto.entity.User; // ✅ Importamos la entidad User
+import com.taxisaeropuerto.taxisAeropuerto.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -16,44 +16,33 @@ public class JwtService {
 
     private static final String SECRET_KEY = "claveSuperSecretaParaJWT123456789";
 
-    // ✅ Este método ya existía y sigue funcionando para inicio de sesión con username y password
-    public String generateToken(UserDetails userDetails) {
-        return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .claim("role", userDetails.getAuthorities().iterator().next().getAuthority())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1h
-                .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    // ✅ Nuevo método para generar un token a partir de un objeto User
+    // 🔹 Generar token a partir de la entidad User usando correo en 'sub'
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
-        claims.put("email", user.getEmail());
-        // Agrega el rol si lo tienes en tu entidad User
-        // claims.put("role", user.getRole().getName());
+        claims.put("rol", user.getRol().getNombre());
+        return buildToken(claims, user.getCorreo()); // <--- correo en sub
+    }
 
+    // 🔹 Generar token genérico desde UserDetails (caso general)
+    public String generateToken(UserDetails userDetails, String correo) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("rol", userDetails.getAuthorities().iterator().next().getAuthority());
+        return buildToken(claims, correo); // <--- correo en sub
+    }
+
+    // 🔹 Construcción interna del token
+    private String buildToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.getEmail())
+                .setSubject(subject)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1h
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hora
                 .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // ✅ Método para extraer el ID de usuario de un token JWT
-    public Long extractUserId(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("id", Long.class);
-    }
-
+    // 🔹 Validación y extracción
     public String extractUsername(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -63,8 +52,8 @@ public class JwtService {
                 .getSubject();
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        return extractUsername(token).equals(userDetails.getUsername()) && !isExpired(token);
+    public boolean isTokenValid(String token, UserDetails userDetails, String correo) {
+        return extractUsername(token).equals(correo) && !isExpired(token);
     }
 
     private boolean isExpired(String token) {

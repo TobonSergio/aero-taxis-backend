@@ -1,6 +1,8 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
-import com.taxisaeropuerto.taxisAeropuerto.dto.*;
+import com.taxisaeropuerto.taxisAeropuerto.dto.AuthResponse;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ClienteRegisterRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.LoginRequest;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
 import com.taxisaeropuerto.taxisAeropuerto.service.AuthService;
 import com.taxisaeropuerto.taxisAeropuerto.service.UserService;
@@ -8,14 +10,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -24,130 +22,74 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
 
+    // 🔹 Login
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        System.out.println("Login request received: " + request.getUsername());
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
+        }
     }
 
-    // Método de registro
+
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@RequestBody ClienteRegisterRequest request) {
         try {
-            User registeredUser = userService.registerUser(request);
-            return new ResponseEntity<>(
-                    "¡Usuario registrado! Por favor, verifica tu correo electrónico para activar tu cuenta.",
-                    HttpStatus.CREATED
+            userService.registerUser(
+                    request.getNombre(),
+                    request.getApellido(),
+                    request.getTelefono(),
+                    request.getCorreo(),
+                    request.getPassword()
             );
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Usuario registrado, revisa tu correo para verificar."
+            ));
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 
-    // Método de registro con correo electrónico
-    @PostMapping("/register/email")
-    public ResponseEntity<?> registerUserByEmail(@Valid @RequestBody RegisterByEmailRequest request) {
-        try {
-            userService.registerUserByEmail(request);
-            return new ResponseEntity<>(
-                    "¡Usuario registrado con correo! Por favor, verifica tu correo electrónico para activar tu cuenta.",
-                    HttpStatus.CREATED
-            );
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
 
+    // 🔹 Verificación de correo
     @GetMapping("/verify")
     public ResponseEntity<?> verifyUser(@RequestParam("token") String token) {
         try {
             userService.verifyUser(token);
-
-            return ResponseEntity.ok().body(
-                    Map.of(
-                            "status", "success",
-                            "message", "¡Tu cuenta ha sido verificada con éxito! Ya puedes iniciar sesión."
-                    )
-            );
-
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "¡Tu cuenta ha sido verificada con éxito!"
+            ));
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(
-                    Map.of(
-                            "status", "error",
-                            "message", ex.getMessage()
-                    )
-            );
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", ex.getMessage()
+            ));
         }
     }
 
-    @PostMapping("/admin/create-user")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createUserByAdmin(@Valid @RequestBody AdminCreateUserRequest request) {
-        try {
-            userService.createUserByAdmin(request);
-            return new ResponseEntity<>(
-                    "Usuario creado con éxito. Revisa tu correo para activar la cuenta.",
-                    HttpStatus.CREATED
-            );
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    // Obtener usuario autenticado
+    // 🔹 Usuario autenticado
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         try {
-            String usernameOrEmail = authentication.getName();
-            User user = userService.getUserByUsernameOrEmail(usernameOrEmail);
-
+            String correo = authentication.getName();
+            User user = userService.getUserByCorreo(correo);
             return ResponseEntity.ok(Map.of(
                     "id", user.getId(),
-                    "username", user.getUsername() != null ? user.getUsername() : "",
-                    "name", user.getName() != null ? user.getName() : "",
-                    "lastName", user.getLastName() != null ? user.getLastName() : "",
-                    "email", user.getEmail(),
-                    "number", user.getNumber() != null ? user.getNumber() : "",
-                    "rolid", user.getRol() != null ? user.getRol().getId() : 0,
+                    "correo", user.getCorreo(),
+                    "rolId", user.getRol() != null ? user.getRol().getRolId() : null,
                     "rolName", user.getRol() != null ? user.getRol().getNombre() : "USER"
             ));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Map.of("error", e.getMessage())
-            );
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
-
-    // ✅ NUEVO: Actualizar usuario autenticado
-    @PutMapping("/me")
-    public ResponseEntity<?> updateCurrentUser(@RequestBody UserUpdateDTO dto, Authentication authentication) {
-        try {
-            String usernameOrEmail = authentication.getName();
-            User user = userService.getUserByUsernameOrEmail(usernameOrEmail);
-
-            user.setName(dto.getName());
-            user.setLastName(dto.getLastName());
-            user.setUsername(dto.getUsername());
-            user.setNumber(dto.getNumber());
-
-            userService.save(user); // Guarda los cambios
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Perfil actualizado correctamente",
-                    "user", Map.of(
-                            "id", user.getId(),
-                            "username", user.getUsername(),
-                            "name", user.getName(),
-                            "lastName", user.getLastName(),
-                            "email", user.getEmail(),
-                            "number", user.getNumber()
-                    )
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    Map.of("error", e.getMessage())
-            );
-        }
-    }
-
 }
+
