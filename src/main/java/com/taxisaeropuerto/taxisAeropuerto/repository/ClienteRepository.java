@@ -13,6 +13,12 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
     // Buscar cliente por correo
     Optional<Cliente> findByCorreo(String correo);
 
-    // 🔹 Buscar cliente por usuario
+    // Buscar cliente por la entidad User (relación directa)
     Optional<Cliente> findByUsuario(User usuario);
+
+
+    // Alternativa: buscar por el correo dentro del usuario relacionado
+    Optional<Cliente> findByUsuario_Correo(String correo);
+    Optional<Cliente> findByUsuarioId(Long usuarioId);
+
 }

@@ -14,6 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Método para buscar un usuario por su token de verificación
     Optional<User> findByVerificationToken(String verificationToken);
 
+
     // 🔹 Agrega estos dos métodos para las validaciones
     boolean existsByCorreo(String correo);
     boolean existsByUsername(String username);

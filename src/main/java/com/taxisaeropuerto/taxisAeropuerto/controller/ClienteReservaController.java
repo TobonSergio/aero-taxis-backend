@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource; // ✅ correcto
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaRequest;
@@ -33,9 +34,10 @@ public class ClienteReservaController {
 
     // 🔹 Crear nueva reserva
     @PostMapping
-    public ResponseEntity<Reserva> crearReserva(@RequestBody ReservaRequest request) {
-        Reserva reserva = reservaService.crearReserva(request);
-        return ResponseEntity.ok(reserva);
+    public ResponseEntity<ReservaResponse> crearReserva(@RequestBody ReservaRequest request) {
+        System.out.println("📦 Reserva recibida: " + request);
+        ReservaResponse reservaResponse = reservaService.crearReserva(request);
+        return ResponseEntity.ok(reservaResponse);
     }
 
     // 🔹 Listar reservas del cliente

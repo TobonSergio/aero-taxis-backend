@@ -2,8 +2,7 @@ package com.taxisaeropuerto.taxisAeropuerto.security;
 
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
-import com.taxisaeropuerto.taxisAeropuerto.repository.RolRepository;
-import com.taxisaeropuerto.taxisAeropuerto.repository.UserRepository;
+import com.taxisaeropuerto.taxisAeropuerto.repository.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +24,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final RolRepository rolRepository;
+    private final ClienteRepository clienteRepository;
+    private final StaffRepository staffRepository;
+    private final ChoferRepository choferRepository;
 
     @Value("${custom.frontredirecturl}")
     private String frontendRedirectUrl;
@@ -35,37 +37,55 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         String email = oauth2User.getAttribute("email");
-        String name = oauth2User.getAttribute("name");
 
-        // 🔹 Buscar usuario existente por correo
-        Optional<User> optionalUser = userRepository.findByCorreo(email);
-        User user;
-
-        if (optionalUser.isPresent()) {
-            // ✅ Ya existe → lo usamos directamente
-            user = optionalUser.get();
-
-        } else {
-            // 🆕 No existe → lo creamos con rol CLIENTE (rolId = 3)
+        // 🔹 Buscar o crear usuario
+        User user = userRepository.findByCorreo(email).orElseGet(() -> {
             Rol rolCliente = rolRepository.findById(3L)
                     .orElseThrow(() -> new RuntimeException("Rol CLIENTE (ID 3) no encontrado"));
+            User newUser = new User();
+            newUser.setUsername(email);
+            newUser.setCorreo(email);
+            newUser.setPassword(null);
+            newUser.setEnabled(true);
+            newUser.setVerificationToken(UUID.randomUUID().toString());
+            newUser.setRol(rolCliente);
+            return userRepository.save(newUser);
+        });
 
-            user = new User();
-            user.setUsername(email);
-            user.setCorreo(email);
-            user.setPassword(null); // no usa contraseña (Google)
-            user.setEnabled(true);
-            user.setVerificationToken(UUID.randomUUID().toString());
-            user.setRol(rolCliente);
-
-            userRepository.save(user);
+        // 🔹 Obtener idPerfil según el rol
+        Long idPerfil = null;
+        String rolNombre = user.getRol() != null ? user.getRol().getNombre() : "USER";
+        switch (rolNombre.toUpperCase()) {
+            case "CLIENTE":
+                idPerfil = clienteRepository.findByUsuario(user)
+                        .map(cliente -> cliente.getIdCliente().longValue())
+                        .orElse(null);
+                break;
+            case "STAFF":
+                idPerfil = staffRepository.findByUsuario(user)
+                        .map(staff -> staff.getIdStaff().longValue())
+                        .orElse(null);
+                break;
+            case "CHOFER":
+                idPerfil = choferRepository.findByUsuario(user)
+                        .map(chofer -> chofer.getIdChofer().longValue())
+                        .orElse(null);
+                break;
         }
 
         // 🔹 Generar token JWT
         String jwtToken = jwtService.generateToken(user);
 
-        // 🔹 Redirigir al frontend con el token
-        String redirectUrl = frontendRedirectUrl + "?token=" + jwtToken;
+        // 🔹 Redirigir al frontend con todos los datos
+        String redirectUrl = frontendRedirectUrl +
+                "?token=" + jwtToken +
+                "&id=" + user.getId() +
+                "&correo=" + user.getCorreo() +
+                "&username=" + user.getUsername() +
+                "&rolid=" + (user.getRol() != null ? user.getRol().getRolId() : "") +
+                "&rolnombre=" + rolNombre +
+                "&idPerfil=" + (idPerfil != null ? idPerfil : "");
         response.sendRedirect(redirectUrl);
     }
 }
+

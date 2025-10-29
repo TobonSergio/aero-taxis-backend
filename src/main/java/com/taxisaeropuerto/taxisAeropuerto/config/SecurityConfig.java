@@ -59,7 +59,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // 🔒 Endpoints accesibles tanto por ADMIN como STAFF
-                        .requestMatchers("/api/gestion/**").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/gestion/**").hasAnyRole("ADMIN", "STAFF" , "CLIENTE")
                         .requestMatchers("/api/staff/**").hasAnyRole("ADMIN","STAFF")
                         // 🔒 Endpoints solo para ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

@@ -2,6 +2,7 @@ package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.google.zxing.WriterException;
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Cliente;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Reserva;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Ruta;
@@ -41,7 +42,7 @@ public class ReservaService {
     }
 
     @Transactional
-    public Reserva crearReserva(ReservaRequest dto) {
+    public ReservaResponse crearReserva(ReservaRequest dto) {
         // 1️⃣ Obtener cliente
         Cliente cliente = clienteRepository.findById(dto.getIdCliente())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
@@ -69,6 +70,7 @@ public class ReservaService {
         reserva.setComentarios(dto.getComentarios());
         reserva.setEstado(Reserva.EstadoReserva.PENDIENTE);
 
+
         // 5️⃣ Guardar primero para generar ID
         reserva = reservaRepository.save(reserva);
 
@@ -84,8 +86,20 @@ public class ReservaService {
             throw new RuntimeException("Error al generar QR o PDF", e);
         }
 
+        var reservaEntity = reservaRepository.save(reserva);
+
+        ReservaResponse reservaResponse = new ReservaResponse();
+        reservaResponse.setIdReserva(reservaEntity.getId_reserva());
+        reservaResponse.setIdCliente(reservaEntity.getCliente().getIdCliente());
+        reservaResponse.setNombre(reservaEntity.getCliente().getNombre());
+        reservaResponse.setApellido(reservaEntity.getCliente().getApellido());
+        reservaResponse.setIdRuta(reservaEntity.getRuta().getId());
+        reservaResponse.setEmail(reservaEntity.getCliente().getCorreo());
+        reservaResponse.setTelefono(reservaEntity.getCliente().getTelefono());
+        reservaResponse.setDireccion(reservaEntity.getCliente().getDireccion());
+        reservaResponse.setComentarios(reservaEntity.getComentarios());
         // 7️⃣ Guardar nuevamente con QR y PDF
-        return reservaRepository.save(reserva);
+        return reservaResponse;
     }
 
     // 🔹 Listar todas las reservas

@@ -40,6 +40,33 @@ public class User implements UserDetails {
     @JoinColumn(name = "fk_id_rol", referencedColumnName = "id_rol")
     private Rol rol;
 
+    @OneToOne(mappedBy = "usuario")
+    private Cliente cliente;
+
+    @OneToOne(mappedBy = "usuario")
+    private Staff staff;
+
+    @OneToOne(mappedBy = "usuario")
+    private Chofer chofer;
+
+    // 👇 Este método devuelve el perfil correspondiente según el rol
+    public Object getPerfil() {
+        if (rol != null) {
+            switch (rol.getNombre().toUpperCase()) {
+                case "CLIENTE":
+                    return cliente;
+                case "STAFF":
+                    return staff;
+                case "CHOFER":
+                    return chofer;
+                default:
+                    return null;
+            }
+        }
+        return null;
+    }
+
+
     // Métodos de UserDetails
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
