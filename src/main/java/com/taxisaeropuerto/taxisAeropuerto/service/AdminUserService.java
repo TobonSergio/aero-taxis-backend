@@ -1,9 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
-import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateStaffRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateUserRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.AdminUpdateUserRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.ChoferCreateRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.*;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Chofer;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Staff;
@@ -18,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +44,7 @@ public class AdminUserService {
         user.setUsername(request.getUsername());
         user.setCorreo(request.getCorreo());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEnabled(false); // 🔹 la cuenta queda inactiva hasta verificar
+        user.setEnabled(true); // 🔹 la cuenta queda inactiva hasta verificar
 
         // Asignar rol
         Rol rol = rolRepository.findById(request.getRolId())
@@ -71,14 +69,28 @@ public class AdminUserService {
         staffRepository.save(staff);
 
         // 🔹 Enviar correo de verificación
-        emailService.sendUsuarioVerificationEmail(user.getCorreo(), token);
+        //emailService.sendUsuarioVerificationEmail(user.getCorreo(), token);
 
         return staff;
     }
     // 🔹 Obtener todos los staff
-    public List<Staff> getAllStaff() {
-        return staffRepository.findAll();
+    // 🔹 Obtener todos los staff como DTO limpio
+    public List<StaffResponse> StaffResponse() {
+        List<Staff> staffList = staffRepository.findAll();
+        return staffList.stream()
+                .map(s -> new StaffResponse(
+                        s.getIdStaff(),
+                        s.getNombre(),
+                        s.getApellido(),
+                        s.getCorreo(),
+                        s.getTelefono(),
+                        s.getCargo(),
+                        s.getUsuario().getUsername(),
+                        s.getUsuario().getRol().getNombre()
+                ))
+                .collect(Collectors.toList());
     }
+
 
     // 🔹 Obtener staff por ID
     public Staff getStaffById(Integer id) {
@@ -124,5 +136,30 @@ public class AdminUserService {
             userRepository.delete(user);
         }
     }
+
+
+    // 🔹 Obtener perfil del staff autenticado
+    public StaffProfileResponse getProfileByCorreo(String correo) {
+        Staff staff = staffRepository.findByUsuario_Correo(correo)
+                .orElseThrow(() -> new RuntimeException("Staff no encontrado"));
+
+        StaffProfileResponse response = new StaffProfileResponse();
+        response.setIdStaff(staff.getIdStaff());
+        response.setNombre(staff.getNombre());
+        response.setApellido(staff.getApellido());
+        response.setCorreo(staff.getCorreo());
+        response.setTelefono(staff.getTelefono());
+        response.setCargo(staff.getCargo());
+        response.setIdUsuario(staff.getUsuario().getId());
+        response.setUsername(staff.getUsuario().getUsername());
+        response.setRolName(
+                staff.getUsuario().getRol() != null
+                        ? staff.getUsuario().getRol().getNombre()
+                        : "Sin rol"
+        );
+
+        return response;
+    }
+
 
 }

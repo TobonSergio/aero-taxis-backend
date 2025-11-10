@@ -1,6 +1,9 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaDashboardResponse;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaPendienteResponse;
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Reserva;
 import com.taxisaeropuerto.taxisAeropuerto.service.ReservaService;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +21,11 @@ public class StaffReservaController {
 
     private final ReservaService reservaService;
 
-    // 🔹 Listar todas las reservas
     @GetMapping
-    public ResponseEntity<List<Reserva>> listarReservas() {
-        List<Reserva> reservas = reservaService.listarReservas();
+    public ResponseEntity<List<ReservaResponse>> listarReservas() {
+        List<ReservaResponse> reservas = reservaService.listarReservas();
         return ResponseEntity.ok(reservas);
     }
-
     // 🔹 Obtener detalles de una reserva
     @GetMapping("/{id}")
     public ResponseEntity<Reserva> obtenerReserva(@PathVariable Integer id) {
@@ -48,9 +49,17 @@ public class StaffReservaController {
     }
 
     @GetMapping("/pendientes")
-    public ResponseEntity<List<Reserva>> listarReservasPendientes() {
-        List<Reserva> pendientes = reservaService.listarReservasPorEstado(Reserva.EstadoReserva.PENDIENTE);
+    public ResponseEntity<List<ReservaPendienteResponse>> listarReservasPendientes() {
+        List<ReservaPendienteResponse> pendientes = reservaService.listarReservasPendientes();
         return ResponseEntity.ok(pendientes);
     }
+
+    // Endpoint para el dashboard
+    @GetMapping("/dashboard")
+    public ResponseEntity<List<ReservaDashboardResponse>> obtenerReservasDashboard() {
+        List<ReservaDashboardResponse> dashboard = reservaService.listarReservasDashboard();
+        return ResponseEntity.ok(dashboard);
+    }
+
 
 }

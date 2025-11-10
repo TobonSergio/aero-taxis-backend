@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
@@ -74,23 +75,33 @@ public class AuthController {
         }
     }
 
-    // 🔹 Usuario autenticado
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
         try {
             String correo = authentication.getName();
             User user = userService.getUserByCorreo(correo);
-            return ResponseEntity.ok(Map.of(
-                    "id", user.getId(),
-                    "correo", user.getCorreo(),
-                    "idCliente", user.getCliente().getIdCliente(),
-                    "rolId", user.getRol() != null ? user.getRol().getRolId() : null,
-                    "rolName", user.getRol() != null ? user.getRol().getNombre() : "USER"
-            ));
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("correo", user.getCorreo());
+            response.put("rolId", user.getRol() != null ? user.getRol().getRolId() : null);
+            response.put("rolName", user.getRol() != null ? user.getRol().getNombre() : "USER");
+
+            if (user.getCliente() != null) {
+                response.put("idCliente", user.getCliente().getIdCliente());
+            } else if (user.getStaff() != null) {
+                response.put("idStaff", user.getStaff().getIdStaff());
+            } else if (user.getChofer() != null) {
+                response.put("idChofer", user.getChofer().getIdChofer());
+            }
+
+            return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
+
 }
 

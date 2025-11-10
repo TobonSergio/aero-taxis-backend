@@ -1,8 +1,10 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateStaffRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.StaffProfileResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Staff;
 import com.taxisaeropuerto.taxisAeropuerto.repository.StaffRepository;
+import com.taxisaeropuerto.taxisAeropuerto.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,14 +16,14 @@ import org.springframework.web.bind.annotation.*;
 public class StaffProfileController {
 
     private final StaffRepository staffRepository;
+    private final AdminUserService adminUserService;
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    public ResponseEntity<?> getProfile(Authentication authentication) {
+    public ResponseEntity<StaffProfileResponse> getProfile(Authentication authentication) {
         String correo = authentication.getName(); // correo del JWT
-        Staff staff = staffRepository.findByUsuario_Correo(correo)
-                .orElseThrow(() -> new RuntimeException("Staff no encontrado"));
-        return ResponseEntity.ok(staff);
+        StaffProfileResponse response = adminUserService.getProfileByCorreo(correo);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/me")

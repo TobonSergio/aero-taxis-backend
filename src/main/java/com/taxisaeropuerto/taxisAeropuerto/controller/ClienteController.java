@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.ClienteProfileResponse;
 import com.taxisaeropuerto.taxisAeropuerto.dto.ClienteUpdateDTO;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Cliente;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
@@ -12,26 +13,45 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/clientes")
-@RequiredArgsConstructor
-public class ClienteController {
+    @RequestMapping("/api/clientes")
+    @RequiredArgsConstructor
+    public class ClienteController {
 
-    private final ClienteService clienteService;
-    private final UserService userService;
+        private final ClienteService clienteService;
+        private final UserService userService;
 
-    // 🔹 Obtener datos del cliente actual
     @GetMapping("/me")
     public ResponseEntity<?> getMe(Authentication authentication) {
         try {
             String username = authentication.getName();
             User user = userService.getUserByUsername(username);
             Cliente cliente = clienteService.getClienteByUsuario(user);
-            return ResponseEntity.ok(cliente);
+
+            ClienteProfileResponse response = new ClienteProfileResponse();
+            response.setIdCliente(cliente.getIdCliente());
+            response.setNombre(cliente.getNombre());
+            response.setApellido(cliente.getApellido());
+            response.setCorreo(cliente.getCorreo() != null ? cliente.getCorreo() : user.getCorreo());
+            response.setTelefono(cliente.getTelefono());
+            response.setDireccion(cliente.getDireccion());
+            response.setCiudad(cliente.getCiudad());
+            response.setIdioma(cliente.getIdioma());
+            response.setFechaNacimiento(
+                    cliente.getFechaNacimiento() != null ? cliente.getFechaNacimiento().toString() : null
+            );
+            response.setGenero(cliente.getGenero());
+            response.setIdUsuario(user.getId());
+            response.setUsername(user.getUsername());
+            response.setRolName(user.getRol().getNombre());
+
+            return ResponseEntity.ok(response);
+
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Error: " + e.getMessage());
         }
     }
+
 
     // 🔹 Actualizar datos del cliente actual
     @PutMapping("/me")

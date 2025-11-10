@@ -1,8 +1,7 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.google.zxing.WriterException;
-import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaRequest;
-import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
+import com.taxisaeropuerto.taxisAeropuerto.dto.*;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Cliente;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Reserva;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Ruta;
@@ -16,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReservaService {
@@ -102,10 +102,25 @@ public class ReservaService {
         return reservaResponse;
     }
 
-    // 🔹 Listar todas las reservas
-    public List<Reserva> listarReservas() {
-        return reservaRepository.findAll();
+    public List<ReservaResponse> listarReservas() {
+        List<Reserva> reservas = reservaRepository.findAll();
+
+        return reservas.stream()
+                .map(reserva -> new ReservaResponse(
+                        reserva.getId_reserva(),
+                        reserva.getCliente().getIdCliente(),
+                        reserva.getRuta().getId(),
+                        reserva.getCliente().getNombre(),
+                        reserva.getCliente().getApellido(),
+                        reserva.getCliente().getDireccion(),
+                        reserva.getCliente().getTelefono(),
+                        reserva.getCliente().getUsuario().getCorreo(),
+                        reserva.getFechaReserva(),
+                        reserva.getComentarios()
+                ))
+                .toList();
     }
+
 
     // 🔹 Obtener reserva por ID
     public Reserva obtenerReservaPorId(Integer id) {
@@ -140,14 +155,83 @@ public class ReservaService {
         reservaRepository.delete(reserva);
     }
 
-    public List<Reserva> listarReservasPorCliente(Integer idCliente) {
+    public List<ReservaListClienteResponse> listarReservasPorCliente(Integer idCliente) {
         Cliente cliente = clienteRepository.findById(idCliente)
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
-        return reservaRepository.findByCliente(cliente);
+
+        List<Reserva> reservas = reservaRepository.findByCliente(cliente);
+
+        return reservas.stream().map(reserva -> {
+            ReservaListClienteResponse dto = new ReservaListClienteResponse();
+            dto.setIdReserva(reserva.getId_reserva());
+            dto.setLugarRecogida(reserva.getLugarRecogida());
+            dto.setDestino(reserva.getDestino());
+            dto.setFechaReserva(reserva.getFechaReserva());
+            dto.setHoraReserva(reserva.getHoraReserva());
+            dto.setEstado(reserva.getEstado().name());
+            dto.setComentarios(reserva.getComentarios());
+            if (reserva.getRuta() != null) {
+                dto.setNombreRuta(reserva.getRuta().getFin());
+            }
+            return dto;
+        }).toList();
     }
+
 
     public List<Reserva> listarReservasPorEstado(Reserva.EstadoReserva estado) {
         return reservaRepository.findByEstado(estado);
+    }
+
+    public List<ReservaPendienteResponse> listarReservasPendientes() {
+        List<Reserva> reservas = reservaRepository.findByEstado(Reserva.EstadoReserva.PENDIENTE);
+
+        return reservas.stream().map(reserva -> {
+            ReservaPendienteResponse dto = new ReservaPendienteResponse();
+            dto.setIdReserva(reserva.getId_reserva());
+            dto.setFechaReserva(reserva.getFechaReserva().toString());
+            dto.setEstado(reserva.getEstado().name());
+            dto.setNombreCliente(reserva.getCliente().getNombre());
+            dto.setApellidoCliente(reserva.getCliente().getApellido());
+            dto.setTelefonoCliente(reserva.getCliente().getTelefono());
+            dto.setCiudadCliente(reserva.getCliente().getCiudad());
+            if (reserva.getRuta() != null) {
+                dto.setOrigen(reserva.getRuta().getInicio());
+                dto.setDestino(reserva.getRuta().getFin());
+            }
+            return dto;
+        }).toList();
+    }
+
+    // Dentro de la clase ReservaService:
+    public List<ReservaDashboardResponse> listarReservasDashboard() {
+        List<Reserva> reservas = reservaRepository.findAll();
+
+        return reservas.stream().map(reserva -> {
+            ReservaDashboardResponse dto = new ReservaDashboardResponse();
+            dto.setIdReserva(reserva.getId_reserva());
+
+            // Nombre del cliente (si existe)
+            if (reserva.getCliente() != null) {
+                dto.setNombreCliente(reserva.getCliente().getNombre());
+            } else {
+                dto.setNombreCliente(null);
+            }
+
+            // Destino: priorizamos el campo destino de la reserva; si no existe usamos la ruta (fin)
+            String destino = reserva.getDestino();
+            if ((destino == null || destino.isBlank()) && reserva.getRuta() != null) {
+                destino = reserva.getRuta().getFin();
+            }
+            dto.setDestino(destino);
+
+            // Fecha de reserva (LocalDateTime en el DTO)
+            dto.setFechaReserva(reserva.getFechaReserva());
+
+            // Estado como texto
+            dto.setEstado(reserva.getEstado() != null ? reserva.getEstado().name() : null);
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
 }

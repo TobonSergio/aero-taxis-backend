@@ -19,6 +19,8 @@ public class EmailService {
 
     // Método general para enviar correo de verificación
     public void sendVerificationEmail(String toEmail, String token, boolean isCliente) {
+        System.out.println("🔐 Clave SendGrid: " + System.getenv("SENDGRID_API_KEY"));
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("sestebantmontoya@gmail.com");

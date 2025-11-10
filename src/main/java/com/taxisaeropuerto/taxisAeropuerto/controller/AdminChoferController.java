@@ -1,6 +1,7 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.ChoferCreateRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ChoferResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Chofer;
 import com.taxisaeropuerto.taxisAeropuerto.service.ChoferService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,11 @@ public class AdminChoferController {
     public ResponseEntity<Void> eliminarChofer(@PathVariable Integer id) {
         choferService.eliminarChofer(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<ChoferResponse>> listarChoferesDisponibles() {
+        return ResponseEntity.ok(choferService.listarChoferesDisponibles());
     }
 
 }

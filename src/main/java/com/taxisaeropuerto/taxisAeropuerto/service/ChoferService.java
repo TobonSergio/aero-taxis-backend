@@ -1,6 +1,7 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.ChoferCreateRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.ChoferResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Chofer;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,27 +30,23 @@ public class ChoferService {
 
     // 🔹 Crear chofer
     public Chofer crearChofer(ChoferCreateRequest request) {
-        // Validar usuario existente
         if (userRepository.existsByCorreo(request.getCorreo()) || userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("El usuario o correo ya están registrados");
         }
 
-        // Obtener rol CHOFER
         Rol rolChofer = rolRepository.findById(4L)
                 .orElseThrow(() -> new RuntimeException("Rol CHOFER no encontrado"));
 
-        // Crear usuario
         User user = new User();
         user.setUsername(request.getUsername());
         user.setCorreo(request.getCorreo());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEnabled(false);
+        user.setEnabled(true);
         user.setRol(rolChofer);
         String token = UUID.randomUUID().toString();
         user.setVerificationToken(token);
         userRepository.save(user);
 
-        // Crear chofer
         Chofer chofer = new Chofer();
         chofer.setNombre(request.getNombre());
         chofer.setApellido(request.getApellido());
@@ -56,13 +54,34 @@ public class ChoferService {
         chofer.setTelefono(request.getTelefono());
         chofer.setLicenciaConduccion(request.getLicenciaConduccion());
         chofer.setBilingue(request.getBilingue());
+        chofer.setEstado(Chofer.EstadoChofer.DISPONIBLE); // ✅ Estado por defecto
         chofer.setUsuario(user);
         choferRepository.save(chofer);
 
-        // Enviar correo de verificación
-        emailService.sendUsuarioVerificationEmail(user.getCorreo(), token);
+        //emailService.sendUsuarioVerificationEmail(user.getCorreo(), token);
 
         return chofer;
+    }
+
+
+    public List<ChoferResponse> listarChoferesDisponibles() {
+        return choferRepository.findByEstado(Chofer.EstadoChofer.DISPONIBLE)
+                .stream()
+                .map(c -> new ChoferResponse(
+                        c.getIdChofer(),
+                        c.getNombre(),
+                        c.getApellido(),
+                        c.getCorreo(),
+                        c.getTelefono(),
+                        c.getLicenciaConduccion(),
+                        c.getBilingue(),
+                        c.getEstado().name(),
+                        c.getUsuario() != null ? c.getUsuario().getUsername() : null,
+                        c.getUsuario() != null && c.getUsuario().getRol() != null
+                                ? c.getUsuario().getRol().getNombre()
+                                : null
+                ))
+                .collect(Collectors.toList());
     }
 
     // Listar todos los choferes

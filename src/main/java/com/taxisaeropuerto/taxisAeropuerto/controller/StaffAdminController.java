@@ -1,6 +1,7 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.AdminCreateStaffRequest;
+import com.taxisaeropuerto.taxisAeropuerto.dto.StaffResponse;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Staff;
 import com.taxisaeropuerto.taxisAeropuerto.service.AdminUserService;
 import jakarta.validation.Valid;
@@ -42,10 +43,11 @@ public class StaffAdminController {
     // ✅ Listar todos los staff (incluye admins y staff)
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Staff>> getAllStaff() {
-        List<Staff> staffList = adminUserService.getAllStaff();
-        return ResponseEntity.ok(staffList);
+    public ResponseEntity<List<StaffResponse>> getAllStaff() {
+        List<StaffResponse> staffResponseList = adminUserService.StaffResponse();
+        return ResponseEntity.ok(staffResponseList);
     }
+
 
     // ✅ Obtener un staff por ID
     @GetMapping("/{id}")

@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaListClienteResponse;
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource; // ✅ correcto
@@ -42,9 +43,9 @@ public class ClienteReservaController {
 
     // 🔹 Listar reservas del cliente
     @GetMapping("/mis-reservas/{idCliente}")
-    public ResponseEntity<List<Reserva>> listarMisReservas(@PathVariable Integer idCliente) {
-        List<Reserva> reservas = reservaService.listarReservasPorCliente(idCliente);
-        return ResponseEntity.ok(reservas);
+    public ResponseEntity<List<ReservaListClienteResponse>> listarMisReservas(@PathVariable Integer idCliente) {
+        List<ReservaListClienteResponse> reservasListClienteResponse = reservaService.listarReservasPorCliente(idCliente);
+        return ResponseEntity.ok(reservasListClienteResponse);
     }
 
     // 🔹 Obtener detalles de una reserva específica

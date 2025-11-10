@@ -35,7 +35,18 @@ public class Chofer {
     @Column(name = "bilingue")
     private Boolean bilingue = false;
 
+    // ✅ Enum para manejar estados
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
+    private EstadoChofer estado = EstadoChofer.DISPONIBLE;
+
     @OneToOne
     @JoinColumn(name = "fk_id_usuario", referencedColumnName = "id_usuario")
     private User usuario;
+
+    public enum EstadoChofer {
+        DISPONIBLE,
+        OCUPADO,
+        INACTIVO
+    }
 }

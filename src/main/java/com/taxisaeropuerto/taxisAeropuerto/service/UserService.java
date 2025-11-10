@@ -37,7 +37,7 @@ public class UserService {
         user.setUsername(correo);
         user.setCorreo(correo);
         user.setPassword(passwordEncoder.encode(password));
-        user.setEnabled(false);
+        user.setEnabled(true);
         user.setVerificationToken(UUID.randomUUID().toString());
         user.setRol(rolCliente);
         userRepository.save(user);
@@ -51,7 +51,7 @@ public class UserService {
         clienteRepository.save(cliente);
 
         // 3️⃣ Enviar correo de verificación
-        emailService.sendClienteVerificationEmail(correo, user.getVerificationToken());
+        //emailService.sendClienteVerificationEmail(correo, user.getVerificationToken());
     }
 
     // 🔹 Obtener usuario por correo

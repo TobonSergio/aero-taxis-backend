@@ -24,12 +24,12 @@ public class Asignacion {
     private Reserva reserva;
 
     @ManyToOne
-    @JoinColumn(name = "id_chofer", nullable = false)
-    private Chofer chofer;
+    @JoinColumn(name = "id_unidad", nullable = true)
+    private Unidad unidad;
 
     @ManyToOne
-    @JoinColumn(name = "id_unidad", nullable = false)
-    private Unidad unidad;
+    @JoinColumn(name = "id_chofer", nullable = true)
+    private Chofer chofer;
 
     @Column(name = "fecha_asignacion", nullable = false)
     private LocalDateTime fechaAsignacion;
