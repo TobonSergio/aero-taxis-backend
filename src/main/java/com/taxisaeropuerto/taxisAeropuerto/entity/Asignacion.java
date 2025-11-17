@@ -31,6 +31,10 @@ public class Asignacion {
     @JoinColumn(name = "id_chofer", nullable = true)
     private Chofer chofer;
 
+    // ✅ Nuevo campo para guardar la ruta o nombre del PDF generado
+    @Column(name = "pdf_path")
+    private String pdfPath;
+
     @Column(name = "fecha_asignacion", nullable = false)
     private LocalDateTime fechaAsignacion;
 

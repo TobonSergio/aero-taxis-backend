@@ -106,7 +106,9 @@ public class AsignacionService {
         String nombrePdf = null;
         if (asignacion.getUnidad() != null && asignacion.getChofer() != null) {
             try {
-                nombrePdf = pdfService.generarComprobante(reserva);
+                nombrePdf = pdfService.generarComprobante(asignacion);
+                asignacion.setPdfPath(nombrePdf); // 🔹 Guardar el nombre en la asignación
+                asignacionRepository.save(asignacion); // 🔹 Actualizar la BD
             } catch (Exception e) {
                 System.err.println("⚠️ Error al generar comprobante PDF: " + e.getMessage());
             }
@@ -115,7 +117,7 @@ public class AsignacionService {
         // 🔹 9. Construir respuesta
         AsignacionResponse response = new AsignacionResponse();
         response.setIdAsignacion(asignacion.getIdAsignacion());
-        response.setIdReserva(reserva.getId_reserva());
+        response.setIdReserva(reserva.getIdReserva());
         response.setDestino(reserva.getDestino());
         response.setEstadoReserva(reserva.getEstado().name());
         response.setNombreCliente(reserva.getCliente().getNombre());

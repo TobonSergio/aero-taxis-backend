@@ -24,21 +24,15 @@ public class ReservaService {
     private final ClienteRepository clienteRepository;
     private final RutaRepository rutaRepository;
     private final StaffRepository staffRepository;
-    private final QRGenerator qrGenerator;
-    private final PDFService pdfService;
 
     public ReservaService(ReservaRepository reservaRepository,
                           ClienteRepository clienteRepository,
                           RutaRepository rutaRepository,
-                          StaffRepository staffRepository,
-                          QRGenerator qrGenerator,
-                          PDFService pdfService) {
+                          StaffRepository staffRepository) {
         this.reservaRepository = reservaRepository;
         this.clienteRepository = clienteRepository;
         this.rutaRepository = rutaRepository;
         this.staffRepository = staffRepository;
-        this.qrGenerator = qrGenerator;
-        this.pdfService = pdfService;
     }
 
     @Transactional
@@ -61,7 +55,7 @@ public class ReservaService {
         // 4️⃣ Crear la reserva
         Reserva reserva = new Reserva();
         reserva.setCliente(cliente);
-        reserva.setStaff(staff); // puede ser null
+        reserva.setStaff(staff);
         reserva.setRuta(ruta);
         reserva.setLugarRecogida(dto.getLugarRecogida());
         reserva.setDestino(dto.getDestino());
@@ -70,44 +64,31 @@ public class ReservaService {
         reserva.setComentarios(dto.getComentarios());
         reserva.setEstado(Reserva.EstadoReserva.PENDIENTE);
 
-
-        // 5️⃣ Guardar primero para generar ID
+        // 5️⃣ Guardar la reserva
         reserva = reservaRepository.save(reserva);
 
-        // 6️⃣ Generar QR y PDF dentro de try-catch para manejar excepciones
-        try {
-            String qrCodePath = qrGenerator.generarQR(reserva);
-            reserva.setQrCode(qrCodePath);
-
-            String pdfPath = pdfService.generarComprobante(reserva);
-            reserva.setComprobantePdf(pdfPath);
-        } catch (WriterException | IOException e) {
-            // Manejo de errores: lanzamos RuntimeException para que Spring lo capture
-            throw new RuntimeException("Error al generar QR o PDF", e);
-        }
-
-        var reservaEntity = reservaRepository.save(reserva);
-
+        // 6️⃣ Construir y devolver la respuesta
         ReservaResponse reservaResponse = new ReservaResponse();
-        reservaResponse.setIdReserva(reservaEntity.getId_reserva());
-        reservaResponse.setIdCliente(reservaEntity.getCliente().getIdCliente());
-        reservaResponse.setNombre(reservaEntity.getCliente().getNombre());
-        reservaResponse.setApellido(reservaEntity.getCliente().getApellido());
-        reservaResponse.setIdRuta(reservaEntity.getRuta().getId());
-        reservaResponse.setEmail(reservaEntity.getCliente().getCorreo());
-        reservaResponse.setTelefono(reservaEntity.getCliente().getTelefono());
-        reservaResponse.setDireccion(reservaEntity.getCliente().getDireccion());
-        reservaResponse.setComentarios(reservaEntity.getComentarios());
-        // 7️⃣ Guardar nuevamente con QR y PDF
+        reservaResponse.setIdReserva(reserva.getIdReserva());
+        reservaResponse.setIdCliente(reserva.getCliente().getIdCliente());
+        reservaResponse.setNombre(reserva.getCliente().getNombre());
+        reservaResponse.setApellido(reserva.getCliente().getApellido());
+        reservaResponse.setIdRuta(reserva.getRuta().getId());
+        reservaResponse.setEmail(reserva.getCliente().getCorreo());
+        reservaResponse.setTelefono(reserva.getCliente().getTelefono());
+        reservaResponse.setDireccion(reserva.getCliente().getDireccion());
+        reservaResponse.setComentarios(reserva.getComentarios());
+
         return reservaResponse;
     }
+
 
     public List<ReservaResponse> listarReservas() {
         List<Reserva> reservas = reservaRepository.findAll();
 
         return reservas.stream()
                 .map(reserva -> new ReservaResponse(
-                        reserva.getId_reserva(),
+                        reserva.getIdReserva(),
                         reserva.getCliente().getIdCliente(),
                         reserva.getRuta().getId(),
                         reserva.getCliente().getNombre(),
@@ -163,7 +144,7 @@ public class ReservaService {
 
         return reservas.stream().map(reserva -> {
             ReservaListClienteResponse dto = new ReservaListClienteResponse();
-            dto.setIdReserva(reserva.getId_reserva());
+            dto.setIdReserva(reserva.getIdReserva());
             dto.setLugarRecogida(reserva.getLugarRecogida());
             dto.setDestino(reserva.getDestino());
             dto.setFechaReserva(reserva.getFechaReserva());
@@ -187,7 +168,7 @@ public class ReservaService {
 
         return reservas.stream().map(reserva -> {
             ReservaPendienteResponse dto = new ReservaPendienteResponse();
-            dto.setIdReserva(reserva.getId_reserva());
+            dto.setIdReserva(reserva.getIdReserva());
             dto.setFechaReserva(reserva.getFechaReserva().toString());
             dto.setEstado(reserva.getEstado().name());
             dto.setNombreCliente(reserva.getCliente().getNombre());
@@ -208,7 +189,7 @@ public class ReservaService {
 
         return reservas.stream().map(reserva -> {
             ReservaDashboardResponse dto = new ReservaDashboardResponse();
-            dto.setIdReserva(reserva.getId_reserva());
+            dto.setIdReserva(reserva.getIdReserva());
 
             // Nombre del cliente (si existe)
             if (reserva.getCliente() != null) {

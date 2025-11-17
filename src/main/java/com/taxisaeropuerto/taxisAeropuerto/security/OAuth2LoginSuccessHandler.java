@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.security;
 
+import com.taxisaeropuerto.taxisAeropuerto.entity.Cliente;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Rol;
 import com.taxisaeropuerto.taxisAeropuerto.entity.User;
 import com.taxisaeropuerto.taxisAeropuerto.repository.*;
@@ -37,46 +38,72 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
         String email = oauth2User.getAttribute("email");
+        String fullName = oauth2User.getAttribute("name");
 
-        // 🔹 Buscar o crear usuario
-        User user = userRepository.findByCorreo(email).orElseGet(() -> {
+        String nombre = fullName != null ? fullName.split(" ")[0] : "Usuario";
+        String apellido = fullName != null && fullName.contains(" ")
+                ? fullName.substring(fullName.indexOf(" ") + 1)
+                : "";
+
+        // Buscar usuario
+        User user = userRepository.findByCorreo(email).orElse(null);
+
+        if (user == null) {
             Rol rolCliente = rolRepository.findById(3L)
                     .orElseThrow(() -> new RuntimeException("Rol CLIENTE (ID 3) no encontrado"));
-            User newUser = new User();
-            newUser.setUsername(email);
-            newUser.setCorreo(email);
-            newUser.setPassword(null);
-            newUser.setEnabled(true);
-            newUser.setVerificationToken(UUID.randomUUID().toString());
-            newUser.setRol(rolCliente);
-            return userRepository.save(newUser);
-        });
 
-        // 🔹 Obtener idPerfil según el rol
+            // Crear usuario
+            user = new User();
+            user.setUsername(email);
+            user.setCorreo(email);
+            user.setPassword(null);
+            user.setEnabled(true);
+            user.setVerificationToken(UUID.randomUUID().toString());
+            user.setRol(rolCliente);
+            user = userRepository.save(user);
+
+            // Crear cliente asociado (ESTO FALTABA!)
+            Cliente cliente = new Cliente();
+            cliente.setNombre(nombre);
+            cliente.setApellido(apellido);
+            cliente.setCorreo(email);
+            cliente.setTelefono("");
+            cliente.setCiudad("");
+            cliente.setDireccion("");
+            cliente.setIdioma("es");
+            cliente.setFechaNacimiento("");
+            cliente.setGenero("");
+            cliente.setUsuario(user);
+
+            clienteRepository.save(cliente);
+        }
+
+        // Obtener idPerfil
         Long idPerfil = null;
         String rolNombre = user.getRol() != null ? user.getRol().getNombre() : "USER";
+
         switch (rolNombre.toUpperCase()) {
             case "CLIENTE":
                 idPerfil = clienteRepository.findByUsuario(user)
-                        .map(cliente -> cliente.getIdCliente().longValue())
+                        .map(c -> c.getIdCliente().longValue())
                         .orElse(null);
                 break;
             case "STAFF":
                 idPerfil = staffRepository.findByUsuario(user)
-                        .map(staff -> staff.getIdStaff().longValue())
+                        .map(s -> s.getIdStaff().longValue())
                         .orElse(null);
                 break;
             case "CHOFER":
                 idPerfil = choferRepository.findByUsuario(user)
-                        .map(chofer -> chofer.getIdChofer().longValue())
+                        .map(c -> c.getIdChofer().longValue())
                         .orElse(null);
                 break;
         }
 
-        // 🔹 Generar token JWT
+        // Token JWT
         String jwtToken = jwtService.generateToken(user);
 
-        // 🔹 Redirigir al frontend con todos los datos
+        // Redirigir
         String redirectUrl = frontendRedirectUrl +
                 "?token=" + jwtToken +
                 "&id=" + user.getId() +
@@ -85,6 +112,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 "&rolid=" + (user.getRol() != null ? user.getRol().getRolId() : "") +
                 "&rolnombre=" + rolNombre +
                 "&idPerfil=" + (idPerfil != null ? idPerfil : "");
+
         response.sendRedirect(redirectUrl);
     }
 }

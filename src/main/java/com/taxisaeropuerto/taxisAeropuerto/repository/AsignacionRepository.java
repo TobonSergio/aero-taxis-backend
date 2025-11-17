@@ -19,4 +19,5 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Integer>
     // 🔹 Verifica si una unidad está ocupada en asignaciones pendientes o activas
     boolean existsByUnidadAndEstadoIn(Unidad unidad, List<Asignacion.EstadoAsignacion> estados);
     List<Asignacion> findByEstado(Asignacion.EstadoAsignacion estado);
+    Optional<Asignacion> findByReserva_IdReserva(Integer idReserva);
 }

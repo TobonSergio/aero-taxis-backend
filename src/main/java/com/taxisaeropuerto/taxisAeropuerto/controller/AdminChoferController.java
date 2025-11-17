@@ -24,7 +24,7 @@ public class AdminChoferController {
 
 
     @GetMapping
-    public ResponseEntity<List<Chofer>> listarChoferes() {
+    public ResponseEntity<List<ChoferResponse>> listarChoferes() {
         return ResponseEntity.ok(choferService.listarChoferes());
     }
 

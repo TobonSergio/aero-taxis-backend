@@ -5,12 +5,12 @@ import com.lowagie.text.Font;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
 import com.lowagie.text.pdf.draw.LineSeparator;
-import com.taxisaeropuerto.taxisAeropuerto.entity.Reserva;
+import com.taxisaeropuerto.taxisAeropuerto.entity.Asignacion;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
-import com.lowagie.text.Image; // ✅ Este es el correcto
+import com.lowagie.text.Image;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,78 +23,128 @@ public class PDFService {
     @Value("${custom.pdf-path}")
     private String rutaPDF;
 
-    public String generarComprobante(Reserva reserva) throws DocumentException, IOException {
+    public String generarComprobante(Asignacion asignacion) throws DocumentException, IOException {
+// ✅ Crear carpeta si no existe
         File carpeta = new File(rutaPDF);
         if (!carpeta.exists()) {
-            carpeta.mkdirs();
+            boolean creada = carpeta.mkdirs();
+            if (!creada) {
+                throw new IOException("❌ No se pudo crear la carpeta para guardar PDFs: " + rutaPDF);
+            }
         }
 
-        String nombreArchivo = "comprobante_" + reserva.getId_reserva() + ".pdf";
+// ✅ Asegurar que termine con "/"
+        if (!rutaPDF.endsWith(File.separator)) {
+            rutaPDF += File.separator;
+        }
+
+        String nombreArchivo = "comprobante_asignacion_" + asignacion.getIdAsignacion() + ".pdf";
         String rutaCompleta = rutaPDF + nombreArchivo;
 
         Document document = new Document(PageSize.A4, 50, 50, 70, 50);
         PdfWriter.getInstance(document, new FileOutputStream(rutaCompleta));
         document.open();
 
-        // 🖼️ Logo (centrado arriba)
+        // 🖼️ Logo
         try {
-            String logoPath = "src/main/resources/static/logo-taxis-rojos-aero-2.jpeg"; // ✅ Ruta del logo
+            String logoPath = "src/main/resources/static/logo-taxis-rojos-aero-2.jpeg";
             Image logo = Image.getInstance(logoPath);
-            logo.scaleToFit(120, 120); // Ajusta el tamaño del logo
-            logo.setAlignment(Element.ALIGN_CENTER); // Centrar el logo
+            logo.scaleToFit(120, 120);
+            logo.setAlignment(Element.ALIGN_CENTER);
             document.add(logo);
-
-            document.add(new Paragraph("\n")); // Espacio debajo del logo
+            document.add(new Paragraph("\n"));
         } catch (Exception e) {
             System.err.println("⚠️ No se pudo cargar el logo: " + e.getMessage());
         }
 
         // 🟡 Encabezado
         Font tituloFont = new Font(Font.HELVETICA, 20, Font.BOLD, new Color(0, 102, 204));
-        Paragraph titulo = new Paragraph("Comprobante de Reserva", tituloFont);
+        Paragraph titulo = new Paragraph("Comprobante de Asignación de Reserva", tituloFont);
         titulo.setAlignment(Element.ALIGN_CENTER);
         titulo.setSpacingAfter(20);
         document.add(titulo);
 
-        // 🔹 Línea separadora
-        document.add(new Paragraph(" "));
         document.add(new LineSeparator());
+        document.add(new Paragraph(" "));
 
-        // 🟢 Información del cliente
+        // 🔵 Sección Cliente
         Font headerFont = new Font(Font.HELVETICA, 14, Font.BOLD);
         Font normalFont = new Font(Font.HELVETICA, 12, Font.NORMAL);
 
         document.add(new Paragraph("Datos del Cliente:", headerFont));
-        document.add(new Paragraph("Nombre: " + reserva.getCliente().getNombre() + " " + reserva.getCliente().getApellido(), normalFont));
-        document.add(new Paragraph("Correo: " + reserva.getCliente().getUsuario().getCorreo(), normalFont));
-        document.add(new Paragraph(" ")); // Espacio
+        document.add(new Paragraph("Nombre: " + asignacion.getReserva().getCliente().getNombre() + " " + asignacion.getReserva().getCliente().getApellido(), normalFont));
+        document.add(new Paragraph("Correo: " + asignacion.getReserva().getCliente().getUsuario().getCorreo(), normalFont));
+        document.add(new Paragraph(" "));
 
-        // 🟠 Detalles de la reserva en formato de tabla
-        PdfPTable table = new PdfPTable(2);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(10);
+        // 🟠 Sección Reserva
+        document.add(new Paragraph("Detalles de la Reserva:", headerFont));
+        PdfPTable tablaReserva = new PdfPTable(2);
+        tablaReserva.setWidthPercentage(100);
+        tablaReserva.setSpacingBefore(10);
 
-        table.addCell(celda("ID de Reserva:", true));
-        table.addCell(celda(String.valueOf(reserva.getId_reserva()), false));
+        tablaReserva.addCell(celda("ID Reserva:", true));
+        tablaReserva.addCell(celda(String.valueOf(asignacion.getReserva().getIdReserva()), false));
 
-        table.addCell(celda("Destino:", true));
-        table.addCell(celda(reserva.getDestino(), false));
+        tablaReserva.addCell(celda("Destino:", true));
+        tablaReserva.addCell(celda(asignacion.getReserva().getDestino(), false));
 
-        table.addCell(celda("Lugar de Recogida:", true));
-        table.addCell(celda(reserva.getLugarRecogida(), false));
+        tablaReserva.addCell(celda("Lugar de Recogida:", true));
+        tablaReserva.addCell(celda(asignacion.getReserva().getLugarRecogida(), false));
 
-        table.addCell(celda("Fecha:", true));
-        table.addCell(celda(reserva.getFechaReserva().toString(), false));
+        tablaReserva.addCell(celda("Fecha:", true));
+        tablaReserva.addCell(celda(asignacion.getReserva().getFechaReserva().toString(), false));
 
-        table.addCell(celda("Hora:", true));
-        table.addCell(celda(reserva.getHoraReserva().toString(), false));
+        tablaReserva.addCell(celda("Hora:", true));
+        tablaReserva.addCell(celda(asignacion.getReserva().getHoraReserva().toString(), false));
 
-        table.addCell(celda("Comentarios:", true));
-        table.addCell(celda(reserva.getComentarios() != null ? reserva.getComentarios() : "-", false));
+        tablaReserva.addCell(celda("Comentarios:", true));
+        tablaReserva.addCell(celda(asignacion.getReserva().getComentarios() != null ? asignacion.getReserva().getComentarios() : "-", false));
 
-        document.add(table);
+        document.add(tablaReserva);
+        document.add(new Paragraph(" "));
 
-        // 🔹 Línea final
+        // 🚗 Sección Unidad
+        if (asignacion.getUnidad() != null) {
+            document.add(new Paragraph("Datos de la Unidad:", headerFont));
+            PdfPTable tablaUnidad = new PdfPTable(2);
+            tablaUnidad.setWidthPercentage(100);
+            tablaUnidad.setSpacingBefore(10);
+
+            tablaUnidad.addCell(celda("Placa:", true));
+            tablaUnidad.addCell(celda(asignacion.getUnidad().getPlaca(), false));
+
+            tablaUnidad.addCell(celda("Modelo:", true));
+            tablaUnidad.addCell(celda(asignacion.getUnidad().getSerie(), false));
+
+            document.add(tablaUnidad);
+            document.add(new Paragraph(" "));
+        }
+
+        // 👨‍✈️ Sección Chofer
+        if (asignacion.getChofer() != null) {
+            document.add(new Paragraph("Datos del Chofer:", headerFont));
+            PdfPTable tablaChofer = new PdfPTable(2);
+            tablaChofer.setWidthPercentage(100);
+            tablaChofer.setSpacingBefore(10);
+
+            tablaChofer.addCell(celda("Nombre:", true));
+            tablaChofer.addCell(celda(asignacion.getChofer().getNombre() + " " + asignacion.getChofer().getApellido(), false));
+
+            tablaChofer.addCell(celda("Teléfono:", true));
+            tablaChofer.addCell(celda(asignacion.getChofer().getTelefono(), false));
+
+            tablaChofer.addCell(celda("Licencia:", true));
+            tablaChofer.addCell(celda(asignacion.getChofer().getLicenciaConduccion(), false));
+
+            document.add(tablaChofer);
+            document.add(new Paragraph(" "));
+        }
+
+        // 📅 Detalle Asignación
+        document.add(new Paragraph("Detalles de la Asignación:", headerFont));
+        document.add(new Paragraph("Fecha de Asignación: " + asignacion.getFechaAsignacion().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")), normalFont));
+        document.add(new Paragraph("Estado: " + asignacion.getEstado().name(), normalFont));
+
         document.add(new LineSeparator());
         document.add(new Paragraph(" "));
 
@@ -110,7 +160,7 @@ public class PDFService {
         return nombreArchivo;
     }
 
-    // 🧩 Método auxiliar para crear celdas con o sin negrita
+    // 🧩 Utilidad para crear celdas
     private PdfPCell celda(String texto, boolean bold) {
         Font font = new Font(Font.HELVETICA, 12, bold ? Font.BOLD : Font.NORMAL);
         PdfPCell cell = new PdfPCell(new Phrase(texto, font));

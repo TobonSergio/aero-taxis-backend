@@ -19,16 +19,34 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
-        User user = userRepository.findByCorreo(correo)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con correo: " + correo));
 
-        // 🔹 Agregar prefijo ROLE_ para que Spring Security reconozca los roles
+        User user = userRepository.findByCorreo(correo)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+
         String roleName = "ROLE_" + (user.getRol() != null ? user.getRol().getNombre() : "USER");
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getCorreo(), // usuario = correo
-                user.getPassword(),
-                List.of(new SimpleGrantedAuthority(roleName))
-        );
+        // Usuario Google → password null → PERMITIRLO
+        if (user.getPassword() == null) {
+            return org.springframework.security.core.userdetails.User
+                    .withUsername(user.getCorreo())
+                    .password("") // nunca null
+                    .authorities(new SimpleGrantedAuthority(roleName))
+                    .accountExpired(false)
+                    .accountLocked(false)
+                    .credentialsExpired(false)
+                    .disabled(!user.getEnabled())
+                    .build();
+        }
+
+        // Usuario normal
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getCorreo())
+                .password(user.getPassword())
+                .authorities(new SimpleGrantedAuthority(roleName))
+                .accountExpired(false)
+                .accountLocked(false)
+                .credentialsExpired(false)
+                .disabled(!user.getEnabled())
+                .build();
     }
 }

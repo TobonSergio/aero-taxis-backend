@@ -84,10 +84,25 @@ public class ChoferService {
                 .collect(Collectors.toList());
     }
 
-    // Listar todos los choferes
-    public List<Chofer> listarChoferes() {
-        return choferRepository.findAll();
+    public List<ChoferResponse> listarChoferes() {
+        return choferRepository.findAll().stream()
+                .map(chofer -> new ChoferResponse(
+                        chofer.getIdChofer(),
+                        chofer.getNombre(),
+                        chofer.getApellido(),
+                        chofer.getCorreo(),
+                        chofer.getTelefono(),
+                        chofer.getLicenciaConduccion(),
+                        chofer.getBilingue(),
+                        chofer.getEstado() != null ? chofer.getEstado().name() : null, // 👈 cambio aquí
+                        chofer.getUsuario() != null ? chofer.getUsuario().getUsername() : null,
+                        chofer.getUsuario() != null && chofer.getUsuario().getRol() != null
+                                ? chofer.getUsuario().getRol().getNombre()
+                                : null
+                ))
+                .toList();
     }
+
 
     // Obtener chofer por ID
     public Chofer obtenerChoferPorId(Integer id) {

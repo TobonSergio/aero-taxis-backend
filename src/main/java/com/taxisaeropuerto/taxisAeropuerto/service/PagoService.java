@@ -73,7 +73,7 @@ public class PagoService {
 
         // Si se confirma el pago, actualizar la reserva asociada
         if (nuevoEstado == Pago.EstadoPago.CONFIRMADO) {
-            reservaRepository.findById(pago.getReserva().getId_reserva())
+            reservaRepository.findById(pago.getReserva().getIdReserva())
                     .ifPresent(reserva -> {
                         reserva.setEstado(Reserva.EstadoReserva.CONFIRMADA);
                         reservaRepository.save(reserva);

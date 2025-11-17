@@ -23,5 +23,4 @@ public class ReservaResponse {
     private String email;
     private LocalDateTime fechaReserva;
     private String comentarios;
-
 }

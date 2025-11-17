@@ -2,6 +2,8 @@ package com.taxisaeropuerto.taxisAeropuerto.controller;
 
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaListClienteResponse;
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaResponse;
+import com.taxisaeropuerto.taxisAeropuerto.entity.Asignacion;
+import com.taxisaeropuerto.taxisAeropuerto.repository.AsignacionRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource; // ✅ correcto
 import com.taxisaeropuerto.taxisAeropuerto.dto.ReservaRequest;
@@ -24,6 +26,7 @@ import java.util.List;
 public class ClienteReservaController {
 
     private final ReservaService reservaService;
+    private final AsignacionRepository asignacionRepository; // ✅ agregamos esto
 
     // 🔹 Rutas inyectadas desde application.properties
     @Value("${custom.pdf-path}")
@@ -55,17 +58,23 @@ public class ClienteReservaController {
         return ResponseEntity.ok(reserva);
     }
 
-    // Descargar PDF
-    @GetMapping("/pdf/{id}")
-    public ResponseEntity<Resource> descargarPdf(@PathVariable Integer id) throws IOException {
-        Reserva reserva = reservaService.obtenerReservaPorId(id);
-        Path filePath = Paths.get(pdfPath + reserva.getComprobantePdf()); // 🔹 usa la ruta de properties
+    @GetMapping("/pdf/{idReserva}")
+    public ResponseEntity<Resource> descargarPdf(@PathVariable Integer idReserva) throws IOException {
+        Asignacion asignacion = asignacionRepository.findByReserva_IdReserva(idReserva)
+                .orElseThrow(() -> new RuntimeException("No hay asignación para esta reserva"));
+
+        Path filePath = Paths.get(pdfPath + asignacion.getPdfPath());
         Resource resource = new UrlResource(filePath.toUri());
+
+        if (!resource.exists()) {
+            throw new RuntimeException("El PDF aún no ha sido generado para esta reserva.");
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
     }
+
 
     // Descargar QR
     @GetMapping("/qr/{id}")
@@ -78,6 +87,7 @@ public class ClienteReservaController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
                 .body(resource);
     }
+
 
 
 }

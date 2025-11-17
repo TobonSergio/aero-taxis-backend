@@ -27,10 +27,10 @@ public class QRGenerator {
             carpeta.mkdirs();
         }
 
-        String nombreArchivo = "QR_" + reserva.getId_reserva() + ".png";
+        String nombreArchivo = "QR_" + reserva.getIdReserva() + ".png";
         String rutaCompleta = rutaQR + nombreArchivo;
 
-        String contenidoQR = "Reserva ID: " + reserva.getId_reserva() +
+        String contenidoQR = "Reserva ID: " + reserva.getIdReserva() +
                 "\nCliente: " + reserva.getCliente().getNombre() + " " + reserva.getCliente().getApellido() +
                 "\nDestino: " + reserva.getDestino() +
                 "\nFecha y hora: " + reserva.getFechaReserva() + " " + reserva.getHoraReserva();
