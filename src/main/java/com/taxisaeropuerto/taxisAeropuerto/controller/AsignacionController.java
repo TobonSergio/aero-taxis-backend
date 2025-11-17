@@ -25,9 +25,6 @@ public class AsignacionController {
 
     private final AsignacionService asignacionService;
 
-    @Value("${custom.pdf-path}")
-    private String pdfPath;
-
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
     public ResponseEntity<AsignacionResponse> crearAsignacion(@RequestBody AsignacionRequest dto) {
@@ -60,23 +57,4 @@ public class AsignacionController {
         asignacionService.eliminarAsignacion(id);
         return ResponseEntity.noContent().build();
     }
-
-    @GetMapping("/pdf/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    public ResponseEntity<Resource> descargarPdf(@PathVariable Integer id) throws IOException {
-        Asignacion asignacion = asignacionService.obtenerPorId(id); // obtenemos la asignación
-        Path filePath = Paths.get(pdfPath + asignacion.getReserva().getComprobantePdf()); // PDF generado para la reserva asociada
-        Resource resource = new UrlResource(filePath.toUri());
-
-        if (!resource.exists() || !resource.isReadable()) {
-            throw new IOException("El archivo PDF no se encuentra o no se puede leer: " + filePath);
-        }
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
-    }
-
-
-
 }

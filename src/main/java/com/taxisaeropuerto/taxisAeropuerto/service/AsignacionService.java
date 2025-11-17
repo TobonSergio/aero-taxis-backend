@@ -23,39 +23,30 @@ public class AsignacionService {
     private final ReservaRepository reservaRepository;
     private final ChoferRepository choferRepository;
     private final UnidadRepository unidadRepository;
-    private final PDFService pdfService; // ✅ Agregado
 
     public AsignacionService(AsignacionRepository asignacionRepository,
                              ReservaRepository reservaRepository,
                              ChoferRepository choferRepository,
-                             UnidadRepository unidadRepository,
-                             PDFService pdfService) { // ✅ Inyectamos el servicio PDF
+                             UnidadRepository unidadRepository) {
         this.asignacionRepository = asignacionRepository;
         this.reservaRepository = reservaRepository;
         this.choferRepository = choferRepository;
         this.unidadRepository = unidadRepository;
-        this.pdfService = pdfService;
     }
 
-    /**
-     * Crea una asignación de chofer y unidad para una reserva.
-     * Cuando se crea, actualiza la reserva a CONFIRMADA y genera el comprobante PDF.
-     */
-    /**
-     * Crea una asignación de chofer y unidad para una reserva.
-     * Cuando se crea, actualiza la reserva a CONFIRMADA y genera el comprobante PDF.
-     */
+
     @Transactional
     public AsignacionResponse crearAsignacion(AsignacionRequest dto) {
-        // 🔹 1. Obtener la reserva
+
+        // 1. Obtener la reserva
         Reserva reserva = reservaRepository.findById(dto.getIdReserva())
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
 
-        // 🔹 2. Buscar si ya existe una asignación para esta reserva
+        // 2. Ver si ya existe asignación
         Asignacion asignacion = asignacionRepository.findByReserva(reserva)
                 .orElse(null);
 
-        // 🔹 3. Si no existe, crear una nueva asignación
+        // 3. Crear asignación si no existe
         if (asignacion == null) {
             asignacion = new Asignacion();
             asignacion.setReserva(reserva);
@@ -63,12 +54,11 @@ public class AsignacionService {
             asignacion.setEstado(Asignacion.EstadoAsignacion.PENDIENTE);
         }
 
-        // 🔹 4. Asignar unidad si viene en el DTO
+        // 4. Asignar unidad
         if (dto.getIdUnidad() != null) {
             Unidad unidad = unidadRepository.findById(dto.getIdUnidad())
                     .orElseThrow(() -> new RuntimeException("Unidad no encontrada"));
 
-            // Verificar si la unidad está ocupada en otra asignación activa o pendiente
             if (asignacionRepository.existsByUnidadAndEstadoIn(
                     unidad, List.of(Asignacion.EstadoAsignacion.PENDIENTE, Asignacion.EstadoAsignacion.ACTIVA))) {
                 throw new RuntimeException("Unidad ya está ocupada");
@@ -79,15 +69,14 @@ public class AsignacionService {
             unidadRepository.save(unidad);
         }
 
-        // 🔹 5. Asignar chofer si viene en el DTO
+        // 5. Asignar chofer
         if (dto.getIdChofer() != null) {
             Chofer chofer = choferRepository.findById(dto.getIdChofer())
                     .orElseThrow(() -> new RuntimeException("Chofer no encontrado"));
 
-            // Verificar si el chofer está ocupado en otra asignación activa o pendiente
             if (asignacionRepository.existsByChoferAndEstadoIn(
                     chofer, List.of(Asignacion.EstadoAsignacion.PENDIENTE, Asignacion.EstadoAsignacion.ACTIVA))) {
-                throw new RuntimeException("Chofer ya tiene una asignación activa o pendiente");
+                throw new RuntimeException("Chofer ya está ocupado");
             }
 
             asignacion.setChofer(chofer);
@@ -95,26 +84,19 @@ public class AsignacionService {
             choferRepository.save(chofer);
         }
 
-        // 🔹 6. Guardar la asignación
+        // 6. Guardar asignación actualizada
         asignacionRepository.save(asignacion);
 
-        // 🔹 7. Actualizar estado de la reserva
+        // 7. Confirmar reserva
         reserva.setEstado(Reserva.EstadoReserva.CONFIRMADA);
         reservaRepository.save(reserva);
 
-        // 🔹 8. Generar PDF solo si ya tiene chofer y unidad asignados
-        String nombrePdf = null;
-        if (asignacion.getUnidad() != null && asignacion.getChofer() != null) {
-            try {
-                nombrePdf = pdfService.generarComprobante(asignacion);
-                asignacion.setPdfPath(nombrePdf); // 🔹 Guardar el nombre en la asignación
-                asignacionRepository.save(asignacion); // 🔹 Actualizar la BD
-            } catch (Exception e) {
-                System.err.println("⚠️ Error al generar comprobante PDF: " + e.getMessage());
-            }
-        }
+        // 🚫 8. ELIMINADO — Ya NO se genera PDF aquí
+        // NO se guarda pdfPath
+        // NO se maneja nombrePdf
+        // Render NO admite guardar archivos en disco
 
-        // 🔹 9. Construir respuesta
+        // 9. Respuesta limpia
         AsignacionResponse response = new AsignacionResponse();
         response.setIdAsignacion(asignacion.getIdAsignacion());
         response.setIdReserva(reserva.getIdReserva());
@@ -127,12 +109,12 @@ public class AsignacionService {
         response.setPlacaUnidad(asignacion.getUnidad() != null ? asignacion.getUnidad().getPlaca() : null);
         response.setFechaAsignacion(asignacion.getFechaAsignacion());
         response.setEstadoAsignacion(asignacion.getEstado().name());
-        response.setComprobantePdf(nombrePdf);
+
+        // ⚠️ YA NO HAY PDF AQUÍ
+        response.setComprobantePdf(null);
 
         return response;
     }
-
-
 
 
     public List<Asignacion> listarAsignaciones() {

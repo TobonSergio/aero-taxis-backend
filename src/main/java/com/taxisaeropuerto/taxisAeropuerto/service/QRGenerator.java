@@ -1,47 +1,42 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
 import com.google.zxing.BarcodeFormat;
-import com.google.zxing.WriterException;
+import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import com.taxisaeropuerto.taxisAeropuerto.entity.Reserva;
-import org.springframework.beans.factory.annotation.Value;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class QRGenerator {
 
-    // 🔹 Inyecta la ruta desde application.properties
-    @Value("${custom.qr-path}")
-    private String rutaQR;
+    public byte[] generarQR(String contenido) {
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.MARGIN, 1);
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
 
-    public String generarQR(Reserva reserva) throws WriterException, IOException {
-        File carpeta = new File(rutaQR);
-        if (!carpeta.exists()) {
-            carpeta.mkdirs();
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(
+                    contenido,
+                    BarcodeFormat.QR_CODE,
+                    400,
+                    400,
+                    hints
+            );
+
+            ByteArrayOutputStream pngOutput = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutput);
+            return pngOutput.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error generando QR", e);
         }
-
-        String nombreArchivo = "QR_" + reserva.getIdReserva() + ".png";
-        String rutaCompleta = rutaQR + nombreArchivo;
-
-        String contenidoQR = "Reserva ID: " + reserva.getIdReserva() +
-                "\nCliente: " + reserva.getCliente().getNombre() + " " + reserva.getCliente().getApellido() +
-                "\nDestino: " + reserva.getDestino() +
-                "\nFecha y hora: " + reserva.getFechaReserva() + " " + reserva.getHoraReserva();
-
-        QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(contenidoQR, BarcodeFormat.QR_CODE, 200, 200);
-
-        Path path = FileSystems.getDefault().getPath(rutaCompleta);
-        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
-
-        System.out.println("QR generado: " + rutaCompleta);
-        return nombreArchivo;
     }
 }
