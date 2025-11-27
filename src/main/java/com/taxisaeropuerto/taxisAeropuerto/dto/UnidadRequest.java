@@ -16,6 +16,12 @@ public class UnidadRequest {
 
     private String fotografia;
 
+    @NotNull(message = "El tipo de taxi es obligatorio")
+    private Unidad.TipoTaxi tipoTaxi;
+
     @NotNull(message = "El estado es obligatorio")
     private Unidad.EstadoUnidad estado;
+
+
+
 }

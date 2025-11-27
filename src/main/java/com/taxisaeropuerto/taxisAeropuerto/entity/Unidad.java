@@ -34,4 +34,12 @@ public class Unidad {
         OCUPADA,
         MANTENIMIENTO
     }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoTaxi tipoTaxi;
+    public enum TipoTaxi {
+        NORMAL,
+        TURISTICO
+    }
 }

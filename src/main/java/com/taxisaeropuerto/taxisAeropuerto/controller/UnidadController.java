@@ -1,7 +1,9 @@
 package com.taxisaeropuerto.taxisAeropuerto.controller;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.UnidadRequest;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Unidad;
 import com.taxisaeropuerto.taxisAeropuerto.service.UnidadService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,13 +19,6 @@ public class UnidadController {
 
     private final UnidadService unidadService;
 
-    // ✅ Solo ADMIN puede crear unidades
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @PostMapping
-    public ResponseEntity<Unidad> crearUnidad(@RequestBody Unidad unidad) {
-        Unidad nuevaUnidad = unidadService.crearUnidad(unidad);
-        return new ResponseEntity<>(nuevaUnidad, HttpStatus.CREATED);
-    }
 
     // ✅ Cualquier usuario autenticado puede listar unidades
     @PreAuthorize("isAuthenticated()")

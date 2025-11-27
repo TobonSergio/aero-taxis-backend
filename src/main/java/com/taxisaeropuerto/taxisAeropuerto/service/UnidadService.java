@@ -1,5 +1,6 @@
 package com.taxisaeropuerto.taxisAeropuerto.service;
 
+import com.taxisaeropuerto.taxisAeropuerto.dto.UnidadRequest;
 import com.taxisaeropuerto.taxisAeropuerto.entity.Unidad;
 import com.taxisaeropuerto.taxisAeropuerto.repository.UnidadRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,10 +14,17 @@ public class UnidadService {
 
     private final UnidadRepository unidadRepository;
 
-    public Unidad crearUnidad(Unidad unidad) {
+    public Unidad crearUnidad(UnidadRequest request) {
+        Unidad unidad = new Unidad();
+
+        unidad.setPlaca(request.getPlaca());
+        unidad.setSerie(request.getSerie());
+        unidad.setFotografia(request.getFotografia());
+        unidad.setEstado(request.getEstado());
+        unidad.setTipoTaxi(request.getTipoTaxi());
+
         return unidadRepository.save(unidad);
     }
-
     public List<Unidad> listarUnidades() {
         return unidadRepository.findAll();
     }
@@ -37,6 +45,7 @@ public class UnidadService {
         unidad.setSerie(unidadDetails.getSerie());
         unidad.setFotografia(unidadDetails.getFotografia());
         unidad.setEstado(unidadDetails.getEstado());
+        unidad.setTipoTaxi(unidadDetails.getTipoTaxi());
 
         return unidadRepository.save(unidad);
     }

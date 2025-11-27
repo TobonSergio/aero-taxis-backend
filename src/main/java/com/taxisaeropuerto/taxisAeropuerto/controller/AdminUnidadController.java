@@ -19,13 +19,8 @@ public class AdminUnidadController {
 
     @PostMapping
     public ResponseEntity<Unidad> crearUnidad(@Valid @RequestBody UnidadRequest request) {
-        Unidad unidad = new Unidad();
-        unidad.setPlaca(request.getPlaca());
-        unidad.setSerie(request.getSerie());
-        unidad.setFotografia(request.getFotografia());
-        unidad.setEstado(request.getEstado());
-
-        return ResponseEntity.ok(unidadService.crearUnidad(unidad));
+        Unidad creada = unidadService.crearUnidad(request);
+        return ResponseEntity.ok(creada);
     }
 
     @GetMapping
